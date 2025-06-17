@@ -1,0 +1,17 @@
+# Build artifacts
+build/
+
+# Exclude non-math source files
+sources/errors.move
+sources/events.move
+sources/lp_token.move
+sources/pool.move
+
+# Keep only math.move in sources
+# sources/math.move - this will be included
+
+# IDE and system files
+.DS_Store
+*.swp
+*.swo
+*~
