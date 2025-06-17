@@ -1,14 +1,14 @@
 # Build artifacts
 build/
 
-# Exclude non-math source files
-sources/errors.move
+# Exclude non-essential source files (keeping math, errors, lp_token)
 sources/events.move
-sources/lp_token.move
 sources/pool.move
 
-# Keep only math.move in sources
-# sources/math.move - this will be included
+# Keep these files:
+# sources/math.move - mathematical engine
+# sources/errors.move - error handling
+# sources/lp_token.move - LP token management
 
 # IDE and system files
 .DS_Store
