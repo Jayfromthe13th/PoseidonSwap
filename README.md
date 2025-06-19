@@ -4,7 +4,7 @@ An Automated Market Maker built on Aptos blockchain for seamless APT/USDC token 
 
 ## What is PoseidonSwap?
 
-PoseidonSwap is a decentralized exchange that enables users to swap tokens and provide liquidity without traditional order books. Built using the proven constant product formula (x*y=k), it offers a familiar yet enhanced trading experience on the Aptos ecosystem.
+PoseidonSwap is a decentralized exchange that enables users to swap tokens and provide liquidity without traditional order books. Built using the proven constant product formula (x*y=k), it offers a familiar yet enhanced trading experience on the Umi ecosystem.
 
 ## Technical Architecture
 
