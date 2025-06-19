@@ -1,6 +1,6 @@
 # PoseidonSwap
 
-An Automated Market Maker built on Aptos blockchain for seamless APT/USDC token swapping.
+An Automated Market Maker built on Umi for seamless APT/USDC token swapping.
 
 ## What is PoseidonSwap?
 
