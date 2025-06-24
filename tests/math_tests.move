@@ -1,7 +1,6 @@
 #[test_only]
 module poseidon_swap::math_tests {
     use poseidon_swap::math;
-    use poseidon_swap::errors;
 
     // Test constants
     const PRECISION_FACTOR: u64 = 1000000;
@@ -56,14 +55,14 @@ module poseidon_swap::math_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code = 30)] // overflow error
+    #[expected_failure(abort_code = 30, location = poseidon_swap::math)] // overflow error
     fun test_safe_math_overflow() {
         // This should fail with overflow
         math::multiply_u64(18446744073709551615, 2); // Max u64 * 2
     }
 
     #[test]
-    #[expected_failure(abort_code = 30)] // overflow error  
+    #[expected_failure(abort_code = 30, location = poseidon_swap::math)] // overflow error  
     fun test_safe_subtraction_underflow() {
         // This should fail with underflow
         math::sub_u64(100, 200);
@@ -116,7 +115,7 @@ module poseidon_swap::math_tests {
     fun test_k_invariant_validation() {
         let old_a = 1000000;
         let old_b = 2000000;
-        let old_k = math::get_k_value(old_a, old_b);
+        let _old_k = math::get_k_value(old_a, old_b);
         
         // Test that equal reserves maintain invariant
         assert!(math::validate_k_invariant(old_a, old_b, old_a, old_b), 1);
@@ -280,19 +279,19 @@ module poseidon_swap::math_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code = 31)] // division by zero
+    #[expected_failure(abort_code = 31, location = poseidon_swap::math)] // division by zero
     fun test_swap_zero_reserves() {
         math::calculate_swap_output(0, 1000000, 1000);
     }
 
     #[test]
-    #[expected_failure(abort_code = 21)] // insufficient input
+    #[expected_failure(abort_code = 21, location = poseidon_swap::math)] // insufficient input
     fun test_swap_zero_input() {
         math::calculate_swap_output(1000000, 1000000, 0);
     }
 
     #[test]
-    #[expected_failure(abort_code = 31)] // division by zero
+    #[expected_failure(abort_code = 31, location = poseidon_swap::math)] // division by zero
     fun test_liquidity_zero_reserves() {
         math::calculate_liquidity_amounts(1000, 1000, 0, 1000, 1000);
     }

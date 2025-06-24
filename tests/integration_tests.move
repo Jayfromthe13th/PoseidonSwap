@@ -22,21 +22,21 @@ module poseidon_swap::integration_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code = 31)]
+    #[expected_failure(abort_code = 31, location = poseidon_swap::math)]
     fun test_math_error_propagation_division_by_zero() {
         // This should fail with the correct error code from errors module
         math::calculate_swap_output(0, 1000000, 1000);
     }
 
     #[test]
-    #[expected_failure(abort_code = 21)]
+    #[expected_failure(abort_code = 21, location = poseidon_swap::math)]
     fun test_math_error_propagation_insufficient_input() {
         // This should fail with the correct error code from errors module
         math::calculate_swap_output(1000000, 1000000, 0);
     }
 
     #[test]
-    #[expected_failure(abort_code = 30)]
+    #[expected_failure(abort_code = 30, location = poseidon_swap::math)]
     fun test_math_error_propagation_overflow() {
         // This should fail with the correct error code from errors module
         math::multiply_u64(18446744073709551615, 2);
@@ -95,7 +95,7 @@ module poseidon_swap::integration_tests {
     fun test_math_precision_consistency() {
         // Test that precision is maintained across different operations
         let value = 1000000;
-        let precision = math::get_precision_factor();
+        let _precision = math::get_precision_factor();
         
         // Test percentage calculations maintain precision
         let one_percent = math::calculate_percentage(value, 100);
@@ -147,11 +147,11 @@ module poseidon_swap::integration_tests {
         let amount_in = 50000;
         
         // Test constant product invariant
-        let k_before = math::get_k_value(reserve_a, reserve_b);
+        let _k_before = math::get_k_value(reserve_a, reserve_b);
         let amount_out = math::calculate_swap_output(reserve_a, reserve_b, amount_in);
         let new_reserve_a = reserve_a + amount_in;
         let new_reserve_b = reserve_b - amount_out;
-        let k_after = math::get_k_value(new_reserve_a, new_reserve_b);
+        let _k_after = math::get_k_value(new_reserve_a, new_reserve_b);
         
         // K should be preserved (allowing for rounding)
         assert!(math::validate_k_invariant(reserve_a, reserve_b, new_reserve_a, new_reserve_b), 1);

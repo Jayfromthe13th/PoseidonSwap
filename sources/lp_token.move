@@ -2,7 +2,6 @@
 /// Handles liquidity provider token creation, minting, and burning using Fungible Asset standard
 module poseidon_swap::lp_token {
     use std::option;
-    use std::signer;
     use std::string::{Self, String};
     use aptos_framework::fungible_asset::{Self, MintRef, TransferRef, BurnRef, Metadata, FungibleAsset};
     use aptos_framework::object::{Self, Object};
@@ -88,14 +87,14 @@ module poseidon_swap::lp_token {
         primary_fungible_store::deposit(to, fa);
     }
 
-    /// Get LP token total supply
     #[view]
+    /// Get LP token total supply
     public fun total_supply(metadata: Object<Metadata>): option::Option<u128> {
         fungible_asset::supply(metadata)
     }
 
-    /// Get LP token balance for an account
     #[view]
+    /// Get LP token balance for an account
     public fun balance(account: address, metadata: Object<Metadata>): u64 {
         primary_fungible_store::balance(account, metadata)
     }
@@ -107,8 +106,8 @@ module poseidon_swap::lp_token {
         };
     }
 
-    /// Get the current supply as u64 (for compatibility)
     #[view]
+    /// Get the current supply as u64 (for compatibility)
     public fun get_supply(metadata: Object<Metadata>): u64 {
         let supply_option = fungible_asset::supply(metadata);
         if (option::is_some(&supply_option)) {
@@ -120,8 +119,8 @@ module poseidon_swap::lp_token {
         }
     }
 
-    /// Get LP token metadata information
     #[view]
+    /// Get LP token metadata information
     public fun get_metadata_info(metadata: Object<Metadata>): (String, String, u8) {
         (
             fungible_asset::name(metadata),
@@ -130,8 +129,8 @@ module poseidon_swap::lp_token {
         )
     }
 
-    /// Check if LP token is frozen for an account
     #[view]
+    /// Check if LP token is frozen for an account
     public fun is_frozen(account: address, metadata: Object<Metadata>): bool {
         primary_fungible_store::is_frozen(account, metadata)
     }
@@ -162,14 +161,14 @@ module poseidon_swap::lp_token {
         primary_fungible_store::deposit(to, fa);
     }
 
-    /// Get the metadata object address
     #[view]
+    /// Get the metadata object address
     public fun get_metadata_address(metadata: Object<Metadata>): address {
         object::object_address(&metadata)
     }
 
-    /// Check if LP token refs exist (for validation)
     #[view]
+    /// Check if LP token refs exist (for validation)
     public fun lp_token_refs_exist(metadata: Object<Metadata>): bool {
         exists<LPTokenRefs>(object::object_address(&metadata))
     }
