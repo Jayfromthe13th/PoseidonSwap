@@ -1,14 +1,12 @@
 # Build artifacts
 build/
 
-# Exclude non-essential source files (keeping math, errors, lp_token)
-sources/events.move
-sources/pool.move
-
-# Keep these files:
+# All source files are now included:
 # sources/math.move - mathematical engine
 # sources/errors.move - error handling
 # sources/lp_token.move - LP token management
+# sources/events.move - event system
+# sources/pool.move - main AMM pool logic
 
 # IDE and system files
 .DS_Store
