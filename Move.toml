@@ -8,11 +8,14 @@ std = "0x1"
 aptos_std = "0x1"
 aptos_framework = "0x1"
 poseidon_swap = "0x42"
+EthToken = "0x100"  # ETH token module address (based on op-move patterns)
 
 [dev-addresses]
 
 [dependencies]
 AptosFramework = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "aptos-move/framework/aptos-framework", rev = "mainnet" }
 AptosStdlib = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "aptos-move/framework/aptos-stdlib", rev = "mainnet" }
+# Note: UmiNetwork op-move integration would require the actual framework modules
+# For now we'll use our mock implementation with proper interfaces
 
 [dev-dependencies]

@@ -195,6 +195,11 @@ module poseidon_swap::math {
         z
     }
 
+    /// Square root function for u64 values (alias for sqrt)
+    public fun sqrt_u64(x: u64): u64 {
+        sqrt(x)
+    }
+
     /// Calculate square root with u128 precision for large numbers
     public fun sqrt_u128(x: u128): u128 {
         if (x == 0) return 0;

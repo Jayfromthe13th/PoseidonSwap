@@ -8,12 +8,22 @@ module poseidon_swap::lp_token {
     use aptos_framework::primary_fungible_store;
     use poseidon_swap::errors;
 
+    friend poseidon_swap::pool;
+
+    /// Initialize the LP token module (called once)
+    fun init_module(_admin: &signer) {
+        // Module is initialized but no global state needed
+        // LP token metadata is created per-pool
+    }
+
     /// LP Token metadata and references
     struct LPTokenRefs has key {
         mint_ref: MintRef,
         transfer_ref: TransferRef,
         burn_ref: BurnRef,
     }
+
+
 
     /// Initialize LP token for a pool
     /// Creates a new fungible asset for LP tokens with proper metadata
@@ -51,30 +61,32 @@ module poseidon_swap::lp_token {
             }
         );
 
-        object::object_from_constructor_ref(constructor_ref)
+        let metadata = object::object_from_constructor_ref(constructor_ref);
+        
+        metadata
     }
 
-    /// Mint LP tokens to a user
-    public fun mint_lp_tokens(
-        metadata: Object<Metadata>,
-        to: address,
-        amount: u64,
-    ) acquires LPTokenRefs {
+    /// Mint LP tokens to a user (convenience function)
+    public(friend) fun mint_to(user: &signer, metadata: Object<Metadata>, amount: u64) acquires LPTokenRefs {
+        let user_addr = std::signer::address_of(user);
         let lp_token_refs = borrow_global<LPTokenRefs>(object::object_address(&metadata));
         let fa = fungible_asset::mint(&lp_token_refs.mint_ref, amount);
-        primary_fungible_store::deposit(to, fa);
+        primary_fungible_store::deposit(user_addr, fa);
     }
 
-    /// Burn LP tokens from a user
-    public fun burn_lp_tokens(
-        metadata: Object<Metadata>,
-        from: &signer,
-        amount: u64,
-    ) acquires LPTokenRefs {
+    /// Burn LP tokens from a user (convenience function)
+    public(friend) fun burn_from(user: &signer, metadata: Object<Metadata>, amount: u64) acquires LPTokenRefs {
         let lp_token_refs = borrow_global<LPTokenRefs>(object::object_address(&metadata));
-        let fa = primary_fungible_store::withdraw(from, metadata, amount);
+        let fa = primary_fungible_store::withdraw(user, metadata, amount);
         fungible_asset::burn(&lp_token_refs.burn_ref, fa);
     }
+
+    /// Get LP token balance for a user (convenience function)
+    public fun balance_of(user_addr: address, metadata: Object<Metadata>): u64 {
+        primary_fungible_store::balance(user_addr, metadata)
+    }
+
+
 
     /// Transfer LP tokens between users
     public fun transfer_lp_tokens(
@@ -171,5 +183,11 @@ module poseidon_swap::lp_token {
     /// Check if LP token refs exist (for validation)
     public fun lp_token_refs_exist(metadata: Object<Metadata>): bool {
         exists<LPTokenRefs>(object::object_address(&metadata))
+    }
+
+    #[test_only]
+    /// Initialize for testing
+    public fun init_for_testing(admin: &signer) {
+        init_module(admin);
     }
 } 

@@ -5,7 +5,9 @@ module poseidon_swap::errors {
     public fun pool_already_exists(): u64 { 10 }
     public fun pool_not_found(): u64 { 11 }
     public fun pool_not_initialized(): u64 { 12 }
-    public fun invalid_pool_state(): u64 { 13 }
+    public fun invalid_fee(): u64 { 13 }
+    public fun pool_paused(): u64 { 14 }
+    public fun invalid_pool_state(): u64 { 15 }
     
     // Liquidity errors (20-29)
     public fun insufficient_liquidity_minted(): u64 { 20 }
@@ -21,6 +23,7 @@ module poseidon_swap::errors {
     public fun underflow(): u64 { 32 }
     public fun invalid_calculation(): u64 { 33 }
     public fun precision_loss(): u64 { 34 }
+    public fun amount_too_large(): u64 { 35 }
     
     // Swap errors (40-49)
     public fun invalid_swap_amount(): u64 { 40 }
@@ -39,10 +42,13 @@ module poseidon_swap::errors {
     public fun token_not_registered(): u64 { 61 }
     public fun insufficient_balance(): u64 { 62 }
     public fun transfer_failed(): u64 { 63 }
+    public fun account_frozen(): u64 { 64 }
+    public fun account_not_found(): u64 { 65 }
     
     // General errors (70-79)
     public fun invalid_argument(): u64 { 70 }
     public fun feature_not_supported(): u64 { 71 }
     public fun operation_not_allowed(): u64 { 72 }
     public fun invalid_state(): u64 { 73 }
+    public fun invalid_operation(): u64 { 74 }
 } 
