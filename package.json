@@ -1,0 +1,45 @@
+{
+  "name": "poseidonswap",
+  "version": "1.0.0",
+  "description": "A production-ready Automated Market Maker (AMM) built with Aptos Move for seamless **Umi/Shell** token swapping with comprehensive DeFi features.",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Jayfromthe13th/PoseidonSwap.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Jayfromthe13th/PoseidonSwap/issues"
+  },
+  "homepage": "https://github.com/Jayfromthe13th/PoseidonSwap#readme",
+  "dependencies": {
+    "next": "^14.1.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "@heroicons/react": "^2.1.1",
+    "autoprefixer": "^10.4.17",
+    "postcss": "^8.4.35",
+    "tailwindcss": "^3.4.1"
+  },
+  "devDependencies": {
+    "@aptos-labs/ts-sdk": "^3.1.2",
+    "@moved/hardhat-plugin": "^0.1.1",
+    "@nomicfoundation/hardhat-toolbox": "^6.0.0",
+    "hardhat": "^2.25.0",
+    "@types/node": "^20.11.19",
+    "@types/react": "^18.2.55",
+    "typescript": "^5.3.3"
+  }
+}

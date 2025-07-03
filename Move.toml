@@ -5,18 +5,13 @@ authors = []
 
 [addresses]
 std = "0x1"
-aptos_std = "0x1"
-aptos_framework = "0x1"
-poseidon_swap = "0x42"
-umi_token = "0x100"  # Umi token module address
-shell_token = "0x101"  # Shell token module address
+poseidon_swap = "_"  # This will be replaced with your deployment address
+umi_token = "_"
+shell_token = "_"
 
 [dev-addresses]
 
 [dependencies]
-AptosFramework = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "aptos-move/framework/aptos-framework", rev = "mainnet" }
-AptosStdlib = { git = "https://github.com/aptos-labs/aptos-core.git", subdir = "aptos-move/framework/aptos-stdlib", rev = "mainnet" }
-# Note: UmiNetwork op-move integration would require the actual framework modules
-# For now we'll use our mock implementation with proper interfaces
+AptosFramework = { git = "https://github.com/aptos-labs/aptos-framework.git", rev = "aptos-release-v1.27", subdir = "aptos-framework" }
 
 [dev-dependencies]
