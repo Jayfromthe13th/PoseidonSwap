@@ -1,6 +1,6 @@
 # PoseidonSwap AMM
 
-A production-ready Automated Market Maker (AMM) built with Aptos Move for seamless **ETH/APT** token swapping with comprehensive DeFi features.
+A production-ready Automated Market Maker (AMM) built with Aptos Move for seamless **Umi/Shell** token swapping with comprehensive DeFi features.
 
 ## 🌊 What is PoseidonSwap?
 
@@ -9,7 +9,7 @@ PoseidonSwap is a fully functional decentralized exchange that enables users to 
 ## ✨ Key Features
 
 ### 🔄 **Core AMM Functionality**
-- **Token Swapping**: Seamless ETH ↔ APT swaps with slippage protection
+- **Token Swapping**: Seamless Umi ↔ Shell swaps with slippage protection
 - **Liquidity Provision**: Add/remove liquidity with automatic LP token minting
 - **Price Discovery**: Real-time pricing based on pool reserves and trading activity
 - **Fee Collection**: Configurable trading fees (0-10%) with admin controls
@@ -23,7 +23,7 @@ PoseidonSwap is a fully functional decentralized exchange that enables users to 
 ### 📊 **Advanced Features**
 - **Event System**: Complete event emission for off-chain monitoring
 - **Multi-User Support**: Multiple liquidity providers and traders
-- **Real Token Integration**: UmiNetwork ETH + mocked APT with actual transfers
+- **Real Token Integration**: UmiNetwork Umi + Shell with actual transfers
 - **LP Token System**: Per-pool metadata with mint/burn mechanics
 
 ## 🏗️ Technical Architecture
@@ -36,8 +36,8 @@ sources/
 ├── events.move        # Event emission system
 ├── errors.move        # Centralized error handling
 ├── lp_token.move      # LP token management
-├── eth_token.move     # UmiNetwork-compatible ETH token
-└── apt_token.move     # APT token implementation
+├── umi_token.move     # Umi token implementation
+└── shell_token.move    # Shell token implementation
 ```
 
 ### **Test Coverage**
@@ -55,7 +55,7 @@ tests/
 - **Aptos Move Language** - Resource-oriented programming with safety guarantees
 - **Fungible Asset Standard** - Future-proof token implementation
 - **Object-Based Architecture** - Composable and upgradeable design
-- **UmiNetwork Integration** - Compatible with op-move ETH token framework
+- **UmiNetwork Integration** 
 
 ## 🚀 Current Status: Production Ready
 
@@ -65,9 +65,9 @@ tests/
 - [x] LP token management system
 - [x] Error handling and safety mechanisms
 
-### **Phase 4: ETH/APT Integration** ✅ **COMPLETE**
-- [x] UmiNetwork ETH token integration
-- [x] APT token mock implementation
+### **Phase 4: Umi/Shell Integration** ✅ **COMPLETE**
+- [x] UmiNetwork token 
+- [x] USDC token implementation
 - [x] Real token transfers and balance management
 - [x] Pool creation and management
 

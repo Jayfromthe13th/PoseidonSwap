@@ -8,6 +8,7 @@ module poseidon_swap::errors {
     public fun invalid_fee(): u64 { 13 }
     public fun pool_paused(): u64 { 14 }
     public fun invalid_pool_state(): u64 { 15 }
+    public fun invalid_address(): u64 { 16 }
     
     // Liquidity errors (20-29)
     public fun insufficient_liquidity_minted(): u64 { 20 }

@@ -86,9 +86,9 @@ module poseidon_swap::integration_tests {
         assert!(lp_quote == lp_direct, 4);
         
         // Test quote_optimal_liquidity
-        let (opt_apt, opt_usdc) = math::quote_optimal_liquidity(150000, 250000, reserve_in, reserve_out);
-        let (direct_apt, direct_usdc) = math::calculate_optimal_liquidity(150000, 250000, reserve_in, reserve_out);
-        assert!(opt_apt == direct_apt && opt_usdc == direct_usdc, 5);
+        let (opt_umi, opt_shell) = math::quote_optimal_liquidity(150000, 250000, reserve_in, reserve_out);
+        let (direct_umi, direct_shell) = math::calculate_optimal_liquidity(150000, 250000, reserve_in, reserve_out);
+        assert!(opt_umi == direct_umi && opt_shell == direct_shell, 5);
     }
 
     #[test]
@@ -193,36 +193,36 @@ module poseidon_swap::integration_tests {
         // Test liquidity calculations with edge cases
         
         // Test with amounts that will satisfy minimum liquidity requirements
-        let min_apt = 10000; // Increased from 1000
-        let min_usdc = 10000; // Increased from 1000
-        let min_lp = math::calculate_liquidity_amounts(min_apt, min_usdc, 0, 0, 0);
+        let min_umi = 10000; // Increased from 1000
+        let min_shell = 10000; // Increased from 1000
+        let min_lp = math::calculate_liquidity_amounts(min_umi, min_shell, 0, 0, 0);
         assert!(min_lp > 0, 1);
         
         // Test proportional liquidity
-        let apt_reserve = 1000000;
-        let usdc_reserve = 2000000;
+        let umi_reserve = 1000000;
+        let shell_reserve = 2000000;
         let total_supply = 1000000;
         
         // Adding same ratio should give proportional LP tokens
         let prop_lp = math::calculate_liquidity_amounts(
-            apt_reserve / 10, // 10% of reserve
-            usdc_reserve / 10, // 10% of reserve
-            apt_reserve,
-            usdc_reserve,
+            umi_reserve / 10, // 10% of reserve
+            shell_reserve / 10, // 10% of reserve
+            umi_reserve,
+            shell_reserve,
             total_supply
         );
         assert!(prop_lp == total_supply / 10, 2); // Should get 10% of LP tokens
         
         // Test optimal liquidity calculation
-        let (opt_apt, opt_usdc) = math::calculate_optimal_liquidity(
-            150000, // Want more APT than ratio
-            200000, // Want less USDC than ratio
-            apt_reserve,
-            usdc_reserve
+        let (opt_umi, opt_shell) = math::calculate_optimal_liquidity(
+            150000, // Want more UMI than ratio
+            200000, // Want less Shell than ratio
+            umi_reserve,
+            shell_reserve
         );
         
         // Should maintain 1:2 ratio
-        assert!(opt_usdc == opt_apt * 2, 3);
+        assert!(opt_shell == opt_umi * 2, 3);
     }
 
     #[test]
@@ -258,14 +258,14 @@ module poseidon_swap::integration_tests {
     #[test]
     fun test_comprehensive_amm_simulation() {
         // Comprehensive test simulating real AMM operations
-        let initial_apt = 1000000;
-        let initial_usdc = 2000000;
+        let initial_umi = 1000000;
+        let initial_shell = 2000000;
         let initial_lp_supply = 0;
         
         // Step 1: Initial liquidity provision
         let initial_lp = math::calculate_liquidity_amounts(
-            initial_apt,
-            initial_usdc,
+            initial_umi,
+            initial_shell,
             0,
             0,
             initial_lp_supply
@@ -273,47 +273,47 @@ module poseidon_swap::integration_tests {
         assert!(initial_lp > 0, 1);
         
         // Step 2: Simulate a swap
-        let swap_amount = 50000; // 5% of APT reserve
-        let usdc_out = math::calculate_swap_output(initial_apt, initial_usdc, swap_amount);
-        assert!(usdc_out > 0, 2);
+        let swap_amount = 50000; // 5% of UMI reserve
+        let shell_out = math::calculate_swap_output(initial_umi, initial_shell, swap_amount);
+        assert!(shell_out > 0, 2);
         
         // Step 3: Check price impact
-        let price_impact = math::calculate_price_impact(initial_apt, initial_usdc, swap_amount);
+        let price_impact = math::calculate_price_impact(initial_umi, initial_shell, swap_amount);
         assert!(price_impact > 0 && price_impact < 1000, 3); // Between 0% and 10%
         
         // Step 4: Update reserves after swap
-        let new_apt_reserve = initial_apt + swap_amount;
-        let new_usdc_reserve = initial_usdc - usdc_out;
+        let new_umi_reserve = initial_umi + swap_amount;
+        let new_shell_reserve = initial_shell - shell_out;
         
         // Step 5: Verify invariant
         assert!(math::validate_k_invariant(
-            initial_apt,
-            initial_usdc,
-            new_apt_reserve,
-            new_usdc_reserve
+            initial_umi,
+            initial_shell,
+            new_umi_reserve,
+            new_shell_reserve
         ), 4);
         
         // Step 6: Add more liquidity
-        let additional_apt = 100000;
-        let additional_usdc = 200000;
+        let additional_umi = 100000;
+        let additional_shell = 200000;
         let additional_lp = math::calculate_liquidity_amounts(
-            additional_apt,
-            additional_usdc,
-            new_apt_reserve,
-            new_usdc_reserve,
+            additional_umi,
+            additional_shell,
+            new_umi_reserve,
+            new_shell_reserve,
             initial_lp
         );
         assert!(additional_lp > 0, 5);
         
         // Step 7: Test withdrawal
         let withdraw_lp = additional_lp / 2; // Withdraw half
-        let (apt_out, usdc_out_withdraw) = math::calculate_withdrawal_amounts(
+        let (umi_out, shell_out_withdraw) = math::calculate_withdrawal_amounts(
             withdraw_lp,
-            new_apt_reserve + additional_apt,
-            new_usdc_reserve + additional_usdc,
+            new_umi_reserve + additional_umi,
+            new_shell_reserve + additional_shell,
             initial_lp + additional_lp
         );
-        assert!(apt_out > 0 && usdc_out_withdraw > 0, 6);
+        assert!(umi_out > 0 && shell_out_withdraw > 0, 6);
         
         // All operations completed successfully
         assert!(true, 7);

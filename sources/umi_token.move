@@ -1,21 +1,20 @@
-/// ETH Token Module (Compatible with UmiNetwork op-move)
-/// Provides u256 ETH token operations following the official op-move patterns
+/// UMI Token Module (Compatible with UmiNetwork op-move)
+/// Provides u256 UMI token operations following the official op-move patterns
 /// This is a mock implementation that matches the official interface
-module poseidon_swap::eth_token {
+module poseidon_swap::umi_token {
     use std::signer;
-    use std::error;
     use poseidon_swap::errors;
 
     friend poseidon_swap::pool;
 
-    /// ETH token store for managing user balances (u256)
-    struct ETHTokenStore has key {
+    /// UMI token store for managing user balances (u256)
+    struct UMITokenStore has key {
         balance: u256,
         frozen: bool,
     }
 
-    /// ETH token metadata (mock implementation)
-    struct ETHMetadata has key {
+    /// UMI token metadata (mock implementation)
+    struct UMIMetadata has key {
         name: vector<u8>,
         symbol: vector<u8>,
         decimals: u8,
@@ -28,20 +27,20 @@ module poseidon_swap::eth_token {
         metadata_addr: address,
     }
 
-    // Constants matching op-move ETH token
-    const ASSET_SYMBOL: vector<u8> = b"ETH";
-    const ASSET_NAME: vector<u8> = b"Ether";
-    const ETH_DECIMALS: u8 = 18;
+    // Constants matching op-move UMI token
+    const ASSET_SYMBOL: vector<u8> = b"UMI";
+    const ASSET_NAME: vector<u8> = b"Umi";
+    const UMI_DECIMALS: u8 = 18;
 
-    /// Initialize ETH token metadata (called once)
+    /// Initialize UMI token metadata (called once)
     fun init_module(admin: &signer) {
         let admin_addr = signer::address_of(admin);
         
         // Create metadata
-        move_to(admin, ETHMetadata {
+        move_to(admin, UMIMetadata {
             name: ASSET_NAME,
             symbol: ASSET_SYMBOL,
-            decimals: ETH_DECIMALS,
+            decimals: UMI_DECIMALS,
             total_supply: 0,
         });
 
@@ -51,72 +50,72 @@ module poseidon_swap::eth_token {
         });
     }
 
-    /// Get ETH metadata object (similar to op-move get_metadata())
+    /// Get UMI metadata object (similar to op-move get_metadata())
     public fun get_metadata(): address {
         @poseidon_swap
     }
 
-    /// Get ETH balance for an address (matches op-move get_balance)
-    public fun get_balance(account: address): u256 acquires ETHTokenStore {
-        if (!exists<ETHTokenStore>(account)) {
+    /// Get UMI balance for an address (matches op-move get_balance)
+    public fun get_balance(account: address): u256 acquires UMITokenStore {
+        if (!exists<UMITokenStore>(account)) {
             return 0
         };
-        let store = borrow_global<ETHTokenStore>(account);
+        let store = borrow_global<UMITokenStore>(account);
         store.balance
     }
 
-    /// Ensure user has an ETH token store
+    /// Ensure user has a UMI token store
     public fun ensure_token_store(user: &signer) {
         let user_addr = signer::address_of(user);
-        if (!exists<ETHTokenStore>(user_addr)) {
-            move_to(user, ETHTokenStore {
+        if (!exists<UMITokenStore>(user_addr)) {
+            move_to(user, UMITokenStore {
                 balance: 0,
                 frozen: false,
             });
         }
     }
 
-    /// Get ETH balance for an address (convenience function for pool)
-    public fun balance_of(user_addr: address): u256 acquires ETHTokenStore {
+    /// Get UMI balance for an address (convenience function for pool)
+    public fun balance_of(user_addr: address): u256 acquires UMITokenStore {
         get_balance(user_addr)
     }
 
-    /// Mint ETH tokens (matches op-move mint function signature)
-    public entry fun mint(admin: &signer, to: address, amount: u256) acquires ETHTokenStore, ETHMetadata {
+    /// Mint UMI tokens (matches op-move mint function signature)
+    public entry fun mint(admin: &signer, to: address, amount: u256) acquires UMITokenStore, UMIMetadata {
         // Verify admin permissions (in real implementation)
         let _admin_addr = signer::address_of(admin);
         
         // Ensure store exists
-        if (!exists<ETHTokenStore>(to)) {
-            move_to(admin, ETHTokenStore {
+        if (!exists<UMITokenStore>(to)) {
+            move_to(admin, UMITokenStore {
                 balance: 0,
                 frozen: false,
             });
         };
         
         // Update total supply
-        let metadata = borrow_global_mut<ETHMetadata>(@poseidon_swap);
+        let metadata = borrow_global_mut<UMIMetadata>(@poseidon_swap);
         metadata.total_supply = metadata.total_supply + amount;
         
         // Mint to user
-        let store = borrow_global_mut<ETHTokenStore>(to);
+        let store = borrow_global_mut<UMITokenStore>(to);
         assert!(!store.frozen, errors::account_frozen());
         store.balance = store.balance + amount;
     }
 
-    /// Transfer ETH tokens (matches op-move transfer function signature)
-    public entry fun transfer(admin: &signer, from: address, to: address, amount: u256) acquires ETHTokenStore {
+    /// Transfer UMI tokens (matches op-move transfer function signature)
+    public entry fun transfer(admin: &signer, from: address, to: address, amount: u256) acquires UMITokenStore {
         // In real implementation, admin can transfer on behalf of users
         let _admin_addr = signer::address_of(admin);
         
         // Verify from account has sufficient balance
-        assert!(exists<ETHTokenStore>(from), errors::insufficient_balance());
-        let from_store = borrow_global_mut<ETHTokenStore>(from);
+        assert!(exists<UMITokenStore>(from), errors::insufficient_balance());
+        let from_store = borrow_global_mut<UMITokenStore>(from);
         assert!(!from_store.frozen, errors::account_frozen());
         assert!(from_store.balance >= amount, errors::insufficient_balance());
         
         // Ensure to account has store
-        if (!exists<ETHTokenStore>(to)) {
+        if (!exists<UMITokenStore>(to)) {
             // Cannot create store for another user in this context
             assert!(false, errors::account_not_found());
         };
@@ -124,18 +123,18 @@ module poseidon_swap::eth_token {
         // Perform transfer
         from_store.balance = from_store.balance - amount;
         
-        let to_store = borrow_global_mut<ETHTokenStore>(to);
+        let to_store = borrow_global_mut<UMITokenStore>(to);
         assert!(!to_store.frozen, errors::account_frozen());
         to_store.balance = to_store.balance + amount;
     }
 
-    /// Burn ETH tokens (matches op-move burn function signature)
-    public entry fun burn(admin: &signer, from: address, amount: u256) acquires ETHTokenStore, ETHMetadata {
+    /// Burn UMI tokens (matches op-move burn function signature)
+    public entry fun burn(admin: &signer, from: address, amount: u256) acquires UMITokenStore, UMIMetadata {
         let _admin_addr = signer::address_of(admin);
         
         // Verify account has sufficient balance
-        assert!(exists<ETHTokenStore>(from), errors::insufficient_balance());
-        let store = borrow_global_mut<ETHTokenStore>(from);
+        assert!(exists<UMITokenStore>(from), errors::insufficient_balance());
+        let store = borrow_global_mut<UMITokenStore>(from);
         assert!(!store.frozen, errors::account_frozen());
         assert!(store.balance >= amount, errors::insufficient_balance());
         
@@ -143,105 +142,105 @@ module poseidon_swap::eth_token {
         store.balance = store.balance - amount;
         
         // Update total supply
-        let metadata = borrow_global_mut<ETHMetadata>(@poseidon_swap);
+        let metadata = borrow_global_mut<UMIMetadata>(@poseidon_swap);
         metadata.total_supply = metadata.total_supply - amount;
     }
 
-    /// Deposit ETH to user's store (for pool operations)
-    public(friend) fun deposit(user: &signer, amount: u256) acquires ETHTokenStore {
+    /// Deposit UMI to user's store (for pool operations)
+    public(friend) fun deposit(user: &signer, amount: u256) acquires UMITokenStore {
         let user_addr = signer::address_of(user);
         ensure_token_store(user);
         
-        let store = borrow_global_mut<ETHTokenStore>(user_addr);
+        let store = borrow_global_mut<UMITokenStore>(user_addr);
         assert!(!store.frozen, errors::account_frozen());
         
         store.balance = store.balance + amount;
     }
 
-    /// Withdraw ETH from user's store (for pool operations)
-    public(friend) fun withdraw(user: &signer, amount: u256) acquires ETHTokenStore {
-        let user_addr = signer::address_of(user);
-        assert!(exists<ETHTokenStore>(user_addr), errors::insufficient_balance());
+    /// Withdraw UMI from user's store (for pool operations)
+    public(friend) fun withdraw(user: &signer, amount: u256) acquires UMITokenStore {
+        let _user_addr = signer::address_of(user);
+        assert!(exists<UMITokenStore>(_user_addr), errors::insufficient_balance());
         
-        let store = borrow_global_mut<ETHTokenStore>(user_addr);
+        let store = borrow_global_mut<UMITokenStore>(_user_addr);
         assert!(!store.frozen, errors::account_frozen());
         assert!(store.balance >= amount, errors::insufficient_balance());
         
         store.balance = store.balance - amount;
     }
 
-    /// Mint ETH tokens for testing purposes
-    public fun mint_for_testing(user: &signer, amount: u256) acquires ETHTokenStore, ETHMetadata {
+    /// Mint UMI tokens for testing purposes
+    public fun mint_for_testing(user: &signer, amount: u256) acquires UMITokenStore, UMIMetadata {
         let user_addr = signer::address_of(user);
         ensure_token_store(user);
         
         // Update total supply
-        let metadata = borrow_global_mut<ETHMetadata>(@poseidon_swap);
+        let metadata = borrow_global_mut<UMIMetadata>(@poseidon_swap);
         metadata.total_supply = metadata.total_supply + amount;
         
         // Mint to user
         deposit(user, amount);
     }
 
-    /// Transfer ETH between users (public interface)
-    public fun transfer_between_users(from: &signer, to_addr: address, amount: u256) acquires ETHTokenStore {
+    /// Transfer UMI between users (public interface)
+    public fun transfer_between_users(from: &signer, to_addr: address, amount: u256) acquires UMITokenStore {
         // Withdraw from sender
         withdraw(from, amount);
         
         // Ensure recipient has store
-        if (!exists<ETHTokenStore>(to_addr)) {
+        if (!exists<UMITokenStore>(to_addr)) {
             assert!(false, errors::account_not_found());
         };
         
         // Deposit to recipient
-        let to_store = borrow_global_mut<ETHTokenStore>(to_addr);
+        let to_store = borrow_global_mut<UMITokenStore>(to_addr);
         assert!(!to_store.frozen, errors::account_frozen());
         to_store.balance = to_store.balance + amount;
     }
 
-    /// Convert u256 ETH amount to u64 for pool calculations (scale down)
-    public fun to_pool_amount(eth_amount: u256): u64 {
+    /// Convert u256 UMI amount to u64 for pool calculations (scale down)
+    public fun to_pool_amount(umi_amount: u256): u64 {
         // Scale down by 10^10 to fit in u64
-        let scaled = eth_amount / 10000000000;
+        let scaled = umi_amount / 10000000000;
         assert!(scaled <= (18446744073709551615 as u256), errors::amount_too_large());
         (scaled as u64)
     }
 
-    /// Convert u64 pool amount back to u256 ETH amount (scale up)
+    /// Convert u64 pool amount back to u256 UMI amount (scale up)
     public fun from_pool_amount(pool_amount: u64): u256 {
         (pool_amount as u256) * 10000000000
     }
 
     /// Get total supply
-    public fun total_supply(): u256 acquires ETHMetadata {
-        let metadata = borrow_global<ETHMetadata>(@poseidon_swap);
+    public fun total_supply(): u256 acquires UMIMetadata {
+        let metadata = borrow_global<UMIMetadata>(@poseidon_swap);
         metadata.total_supply
     }
 
     /// Check if account is frozen
-    public fun is_frozen(user_addr: address): bool acquires ETHTokenStore {
-        if (!exists<ETHTokenStore>(user_addr)) {
+    public fun is_frozen(user_addr: address): bool acquires UMITokenStore {
+        if (!exists<UMITokenStore>(user_addr)) {
             return false
         };
-        let store = borrow_global<ETHTokenStore>(user_addr);
+        let store = borrow_global<UMITokenStore>(user_addr);
         store.frozen
     }
 
     /// Freeze/unfreeze account (admin function)
-    public fun set_frozen(admin: &signer, user_addr: address, frozen: bool) acquires ETHTokenStore {
+    public fun set_frozen(admin: &signer, user_addr: address, frozen: bool) acquires UMITokenStore {
         // In real implementation, would check admin permissions
         let _admin_addr = signer::address_of(admin);
         
-        if (exists<ETHTokenStore>(user_addr)) {
-            let store = borrow_global_mut<ETHTokenStore>(user_addr);
+        if (exists<UMITokenStore>(user_addr)) {
+            let store = borrow_global_mut<UMITokenStore>(user_addr);
             store.frozen = frozen;
         }
     }
 
     #[view]
-    /// Get ETH metadata
-    public fun get_metadata_info(): (vector<u8>, vector<u8>, u8) acquires ETHMetadata {
-        let metadata = borrow_global<ETHMetadata>(@poseidon_swap);
+    /// Get UMI metadata
+    public fun get_metadata_info(): (vector<u8>, vector<u8>, u8) acquires UMIMetadata {
+        let metadata = borrow_global<UMIMetadata>(@poseidon_swap);
         (metadata.name, metadata.symbol, metadata.decimals)
     }
 

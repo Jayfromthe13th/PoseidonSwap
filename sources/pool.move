@@ -1,5 +1,5 @@
 /// Main AMM Pool module for PoseidonSwap
-/// Handles pool creation, liquidity management, and token swaps for ETH/APT pair
+/// Handles pool creation, liquidity management, and token swaps for UMI/Shell pair
 module poseidon_swap::pool {
     use std::signer;
     use aptos_framework::fungible_asset::Metadata;
@@ -8,13 +8,13 @@ module poseidon_swap::pool {
     use poseidon_swap::lp_token;
     use poseidon_swap::events;
     use poseidon_swap::errors;
-    use poseidon_swap::eth_token;
-    use poseidon_swap::apt_token;
+    use poseidon_swap::umi_token;
+    use poseidon_swap::shell_token;
 
-    /// Pool resource holding AMM state for ETH/APT pair
+    /// Pool resource holding AMM state for UMI/Shell pair
     struct Pool has key {
-        eth_reserve: u64,  // ETH reserve scaled down to u64 for calculations
-        apt_reserve: u64,  // APT reserve in native u64
+        umi_reserve: u64,  // UMI reserve scaled down to u64 for calculations
+        shell_reserve: u64,  // Shell reserve in native u64
         lp_token_metadata: Object<Metadata>,
         fee_bps: u64, // Fee in basis points (e.g., 30 = 0.3%)
         is_paused: bool,
@@ -30,9 +30,9 @@ module poseidon_swap::pool {
         pool_address: address,
     }
 
-    /// Global pool registry to track the main ETH/APT pool
+    /// Global pool registry to track the main UMI/Shell pool
     struct PoolRegistry has key {
-        eth_apt_pool: address,
+        umi_shell_pool: address,
         initialized: bool,
     }
 
@@ -44,58 +44,58 @@ module poseidon_swap::pool {
     fun init_module(admin: &signer) {
         let admin_addr = signer::address_of(admin);
         move_to(admin, PoolRegistry {
-            eth_apt_pool: admin_addr, // Placeholder until real pool is created
+            umi_shell_pool: admin_addr, // Placeholder until real pool is created
             initialized: false,
         });
     }
 
-    /// Initialize a new ETH/APT AMM pool
+    /// Initialize a new UMI/Shell AMM pool
     public fun create_pool(
         creator: &signer,
-        initial_eth_amount: u64,  // ETH amount (scaled to u64)
-        initial_apt_amount: u64,  // APT amount
+        initial_umi_amount: u64,  // UMI amount (scaled to u64)
+        initial_shell_amount: u64,  // Shell amount
         fee_bps: u64,
     ): address acquires PoolRegistry {
         let creator_addr = signer::address_of(creator);
         
         // Validate inputs
-        assert!(initial_eth_amount > 0, errors::insufficient_input_amount());
-        assert!(initial_apt_amount > 0, errors::insufficient_input_amount());
+        assert!(initial_umi_amount > 0, errors::insufficient_input_amount());
+        assert!(initial_shell_amount > 0, errors::insufficient_input_amount());
         assert!(fee_bps <= 10000, errors::invalid_swap_amount()); // Max 100% fee
-        assert!(initial_eth_amount >= MIN_LIQUIDITY, errors::insufficient_input_amount());
-        assert!(initial_apt_amount >= MIN_LIQUIDITY, errors::insufficient_input_amount());
+        assert!(initial_umi_amount >= MIN_LIQUIDITY, errors::insufficient_input_amount());
+        assert!(initial_shell_amount >= MIN_LIQUIDITY, errors::insufficient_input_amount());
         
         // Ensure user has token stores
-        eth_token::ensure_token_store(creator);
-        apt_token::ensure_token_store(creator);
+        umi_token::ensure_token_store(creator);
+        shell_token::ensure_token_store(creator);
         
         // Verify user has sufficient balance
-        let eth_balance = eth_token::balance_of(creator_addr);
-        let apt_balance = apt_token::balance_of(creator_addr);
-        assert!(eth_balance >= (initial_eth_amount as u256), errors::insufficient_input_amount());
-        assert!(apt_balance >= initial_apt_amount, errors::insufficient_input_amount());
+        let umi_balance = umi_token::balance_of(creator_addr);
+        let shell_balance = shell_token::balance_of(creator_addr);
+        assert!(umi_balance >= (initial_umi_amount as u256), errors::insufficient_input_amount());
+        assert!(shell_balance >= initial_shell_amount, errors::insufficient_input_amount());
         
         // Create LP token
         let lp_token_metadata = lp_token::initialize_lp_token(
             creator,
-            std::string::utf8(b"ETH-APT LP"),
-            std::string::utf8(b"ETH_APT_LP"),
+            std::string::utf8(b"UMI-Shell LP"),
+            std::string::utf8(b"UMISHELL"),
             8, // 8 decimals
             std::string::utf8(b""), // icon_uri
             std::string::utf8(b""), // project_uri
         );
         
         // Calculate initial LP tokens (geometric mean)
-        let initial_lp_supply = math::sqrt_u64(initial_eth_amount * initial_apt_amount);
+        let initial_lp_supply = math::sqrt_u64(initial_umi_amount * initial_shell_amount);
         
         // Transfer tokens to pool (simulated - in real implementation would transfer to pool address)
-        eth_token::withdraw(creator, (initial_eth_amount as u256));
-        apt_token::withdraw(creator, initial_apt_amount);
+        umi_token::withdraw(creator, (initial_umi_amount as u256));
+        shell_token::withdraw(creator, initial_shell_amount);
         
         // Create pool resource
         move_to(creator, Pool {
-            eth_reserve: initial_eth_amount,
-            apt_reserve: initial_apt_amount,
+            umi_reserve: initial_umi_amount,
+            shell_reserve: initial_shell_amount,
             lp_token_metadata,
             fee_bps,
             is_paused: false,
@@ -113,7 +113,7 @@ module poseidon_swap::pool {
         
         // Update registry
         let registry = borrow_global_mut<PoolRegistry>(@poseidon_swap);
-        registry.eth_apt_pool = creator_addr;
+        registry.umi_shell_pool = creator_addr;
         registry.initialized = true;
         
         // Mint initial LP tokens to creator
@@ -122,8 +122,8 @@ module poseidon_swap::pool {
         // Emit pool created event
         events::emit_pool_created(
             creator_addr,
-            initial_eth_amount,
-            initial_apt_amount,
+            initial_umi_amount,
+            initial_shell_amount,
             initial_lp_supply,
             creator_addr,
         );
@@ -131,30 +131,30 @@ module poseidon_swap::pool {
         creator_addr
     }
 
-    /// Add liquidity to the ETH/APT pool
+    /// Add liquidity to the UMI/Shell pool
     public fun add_liquidity(
         user: &signer,
-        eth_amount: u64,
-        apt_amount: u64,
+        umi_amount: u64,
+        shell_amount: u64,
         min_lp_tokens: u64,
     ): u64 acquires Pool, PoolRegistry {
         let user_addr = signer::address_of(user);
         let pool_addr = get_pool_address();
         
         // Validate inputs
-        assert!(eth_amount > 0, errors::insufficient_input_amount());
-        assert!(apt_amount > 0, errors::insufficient_input_amount());
+        assert!(umi_amount > 0, errors::insufficient_input_amount());
+        assert!(shell_amount > 0, errors::insufficient_input_amount());
         assert!(!is_paused(pool_addr), errors::pool_paused());
         
         // Ensure user has token stores
-        eth_token::ensure_token_store(user);
-        apt_token::ensure_token_store(user);
+        umi_token::ensure_token_store(user);
+        shell_token::ensure_token_store(user);
         
         // Verify user has sufficient balance
-        let eth_balance = eth_token::balance_of(user_addr);
-        let apt_balance = apt_token::balance_of(user_addr);
-        assert!(eth_balance >= (eth_amount as u256), errors::insufficient_input_amount());
-        assert!(apt_balance >= apt_amount, errors::insufficient_input_amount());
+        let umi_balance = umi_token::balance_of(user_addr);
+        let shell_balance = shell_token::balance_of(user_addr);
+        assert!(umi_balance >= (umi_amount as u256), errors::insufficient_input_amount());
+        assert!(shell_balance >= shell_amount, errors::insufficient_input_amount());
         
         // Get current pool state
         let pool = borrow_global_mut<Pool>(pool_addr);
@@ -162,14 +162,14 @@ module poseidon_swap::pool {
         // Calculate LP tokens to mint
         let lp_tokens = if (pool.total_lp_supply == 0) {
             // First liquidity addition
-            math::sqrt_u64(eth_amount * apt_amount)
+            math::sqrt_u64(umi_amount * shell_amount)
         } else {
             // Subsequent additions - maintain ratio
             math::calculate_liquidity_amounts(
-                eth_amount,
-                apt_amount,
-                pool.eth_reserve,
-                pool.apt_reserve,
+                umi_amount,
+                shell_amount,
+                pool.umi_reserve,
+                pool.shell_reserve,
                 pool.total_lp_supply
             )
         };
@@ -178,12 +178,12 @@ module poseidon_swap::pool {
         assert!(lp_tokens >= min_lp_tokens, errors::slippage_exceeded());
         
         // Transfer tokens from user
-        eth_token::withdraw(user, (eth_amount as u256));
-        apt_token::withdraw(user, apt_amount);
+        umi_token::withdraw(user, (umi_amount as u256));
+        shell_token::withdraw(user, shell_amount);
         
         // Update pool reserves
-        pool.eth_reserve = pool.eth_reserve + eth_amount;
-        pool.apt_reserve = pool.apt_reserve + apt_amount;
+        pool.umi_reserve = pool.umi_reserve + umi_amount;
+        pool.shell_reserve = pool.shell_reserve + shell_amount;
         pool.total_lp_supply = pool.total_lp_supply + lp_tokens;
         
         // Mint LP tokens to user
@@ -192,23 +192,23 @@ module poseidon_swap::pool {
         // Emit liquidity added event
         events::emit_liquidity_added(
             user_addr,
-            eth_amount,
-            apt_amount,
+            umi_amount,
+            shell_amount,
             lp_tokens,
             pool.total_lp_supply,
-            pool.eth_reserve,
-            pool.apt_reserve,
+            pool.umi_reserve,
+            pool.shell_reserve,
         );
         
         lp_tokens
     }
 
-    /// Remove liquidity from the ETH/APT pool
+    /// Remove liquidity from the UMI/Shell pool
     public fun remove_liquidity(
         user: &signer,
         lp_tokens: u64,
-        min_eth: u64,
-        min_apt: u64,
+        min_umi: u64,
+        min_shell: u64,
     ): (u64, u64) acquires Pool, PoolRegistry {
         let user_addr = signer::address_of(user);
         let pool_addr = get_pool_address();
@@ -218,8 +218,8 @@ module poseidon_swap::pool {
         assert!(!is_paused(pool_addr), errors::pool_paused());
         
         // Ensure user has token stores
-        eth_token::ensure_token_store(user);
-        apt_token::ensure_token_store(user);
+        umi_token::ensure_token_store(user);
+        shell_token::ensure_token_store(user);
         
         // Get current pool state
         let pool = borrow_global_mut<Pool>(pool_addr);
@@ -229,189 +229,216 @@ module poseidon_swap::pool {
         assert!(lp_balance >= lp_tokens, errors::insufficient_liquidity_burned());
         
         // Calculate withdrawal amounts
-        let (eth_amount, apt_amount) = math::calculate_withdrawal_amounts(
+        let (umi_amount, shell_amount) = math::calculate_withdrawal_amounts(
             lp_tokens,
-            pool.eth_reserve,
-            pool.apt_reserve,
+            pool.umi_reserve,
+            pool.shell_reserve,
             pool.total_lp_supply
         );
         
         // Validate slippage
-        assert!(eth_amount >= min_eth, errors::slippage_exceeded());
-        assert!(apt_amount >= min_apt, errors::slippage_exceeded());
+        assert!(umi_amount >= min_umi, errors::slippage_exceeded());
+        assert!(shell_amount >= min_shell, errors::slippage_exceeded());
         
         // Burn LP tokens from user
         lp_token::burn_from(user, pool.lp_token_metadata, lp_tokens);
         
         // Update pool reserves
-        pool.eth_reserve = pool.eth_reserve - eth_amount;
-        pool.apt_reserve = pool.apt_reserve - apt_amount;
+        pool.umi_reserve = pool.umi_reserve - umi_amount;
+        pool.shell_reserve = pool.shell_reserve - shell_amount;
         pool.total_lp_supply = pool.total_lp_supply - lp_tokens;
         
         // Transfer tokens to user
-        eth_token::deposit(user, (eth_amount as u256));
-        apt_token::deposit(user, apt_amount);
+        umi_token::deposit(user, (umi_amount as u256));
+        shell_token::deposit(user, shell_amount);
         
         // Emit liquidity removed event
         events::emit_liquidity_removed(
             user_addr,
             lp_tokens,
-            eth_amount,
-            apt_amount,
+            umi_amount,
+            shell_amount,
             pool.total_lp_supply,
-            pool.eth_reserve,
-            pool.apt_reserve,
+            pool.umi_reserve,
+            pool.shell_reserve,
         );
         
-        (eth_amount, apt_amount)
+        (umi_amount, shell_amount)
     }
 
-    /// Swap ETH for APT
-    public fun swap_eth_for_apt(
+    /// Get the current fee rate of the pool (in basis points)
+    public fun get_pool_fee(pool_addr: address): u64 acquires Pool {
+        let pool = borrow_global<Pool>(pool_addr);
+        pool.fee_bps
+    }
+
+    #[test_only]
+    /// Returns whether the pool is currently paused
+    /// This function is only available in test mode
+    public fun is_paused_for_testing(pool_addr: address): bool acquires Pool {
+        let pool = borrow_global<Pool>(pool_addr);
+        pool.is_paused
+    }
+
+    /// Emergency stop function to pause pool operations
+    public fun emergency_stop(
+        admin: &signer,
+        pool_addr: address
+    ) acquires Pool {
+        // Verify caller is pool creator/admin
+        let admin_addr = signer::address_of(admin);
+        assert!(admin_addr == pool_addr, errors::unauthorized());
+        
+        let pool = borrow_global_mut<Pool>(pool_addr);
+        pool.is_paused = true;
+        
+        // Emit pause event
+        events::emit_pool_paused(pool_addr);
+    }
+
+    /// Transfer pool ownership to a new address
+    public fun transfer_ownership(
+        current_owner: &signer,
+        pool_addr: address,
+        new_owner: address
+    ) acquires PoolInfo {
+        // Verify caller is current owner
+        let owner_addr = signer::address_of(current_owner);
+        assert!(owner_addr == pool_addr, errors::unauthorized());
+        assert!(new_owner != @0x0, errors::invalid_address());
+        
+        // Update pool info
+        let pool_info = borrow_global_mut<PoolInfo>(pool_addr);
+        pool_info.creator = new_owner;
+        
+        // Emit ownership transfer event
+        events::emit_ownership_transferred(pool_addr, owner_addr, new_owner);
+    }
+
+    /// Swap UMI for Shell
+    public fun swap_umi_for_shell(
         user: &signer,
-        eth_in: u64,
-        min_apt_out: u64,
-    ): u64 acquires Pool, PoolInfo, PoolRegistry {
+        umi_in: u64,
+        min_shell_out: u64
+    ): u64 acquires Pool, PoolRegistry, PoolInfo {
         let user_addr = signer::address_of(user);
         let pool_addr = get_pool_address();
         
         // Validate inputs
-        assert!(eth_in > 0, errors::insufficient_input_amount());
+        assert!(umi_in > 0, errors::insufficient_input_amount());
         assert!(!is_paused(pool_addr), errors::pool_paused());
-        
-        // Ensure user has token stores
-        eth_token::ensure_token_store(user);
-        apt_token::ensure_token_store(user);
-        
-        // Verify user has sufficient ETH balance
-        let eth_balance = eth_token::balance_of(user_addr);
-        assert!(eth_balance >= (eth_in as u256), errors::insufficient_input_amount());
         
         // Get current pool state
         let pool = borrow_global_mut<Pool>(pool_addr);
         
-        // Calculate swap output with fee
-        let apt_out = math::calculate_swap_output_with_fee(
-            pool.eth_reserve,
-            pool.apt_reserve,
-            eth_in,
+        // Calculate output amount with fee
+        let shell_out = math::calculate_swap_output_with_fee(
+            pool.umi_reserve,
+            pool.shell_reserve,
+            umi_in,
             pool.fee_bps
         );
         
-        // Validate slippage
-        assert!(apt_out >= min_apt_out, errors::slippage_exceeded());
-        assert!(apt_out < pool.apt_reserve, errors::insufficient_output_amount());
-        
-        // Calculate fee for tracking
-        let fee_amount = (eth_in * pool.fee_bps) / 10000;
+        // Validate slippage and output
+        assert!(shell_out >= min_shell_out, errors::slippage_exceeded());
+        assert!(shell_out < pool.shell_reserve, errors::insufficient_liquidity());
         
         // Transfer tokens
-        eth_token::withdraw(user, (eth_in as u256));
-        apt_token::deposit(user, apt_out);
+        umi_token::withdraw(user, (umi_in as u256));
+        shell_token::deposit(user, shell_out);
         
-        // Update pool reserves
-        let old_eth_reserve = pool.eth_reserve;
-        let old_apt_reserve = pool.apt_reserve;
-        pool.eth_reserve = pool.eth_reserve + eth_in;
-        pool.apt_reserve = pool.apt_reserve - apt_out;
+        // Update reserves
+        pool.umi_reserve = pool.umi_reserve + umi_in;
+        pool.shell_reserve = pool.shell_reserve - shell_out;
         
-        // Update pool info
+        // Update volume and fees
         let pool_info = borrow_global_mut<PoolInfo>(pool_addr);
-        pool_info.total_volume = pool_info.total_volume + (eth_in as u128);
-        pool_info.total_fees = pool_info.total_fees + (fee_amount as u128);
+        pool_info.total_volume = pool_info.total_volume + (umi_in as u128);
+        let fee_amount = (umi_in as u128) * (pool.fee_bps as u128) / 10000;
+        pool_info.total_fees = pool_info.total_fees + fee_amount;
         
-        // Emit swap executed event
+        // Emit swap event
         events::emit_swap_executed(
             user_addr,
-            @poseidon_swap, // ETH token address (placeholder)
-            eth_in,
-            apt_out,
-            old_eth_reserve,
-            old_apt_reserve,
-            pool.eth_reserve,
-            pool.apt_reserve,
+            @umi_token,  // token_in address
+            umi_in,
+            shell_out,
+            pool.umi_reserve,
+            pool.shell_reserve,
+            pool.umi_reserve + umi_in,
+            pool.shell_reserve - shell_out
         );
         
-        apt_out
+        shell_out
     }
 
-    /// Swap APT for ETH
-    public fun swap_apt_for_eth(
+    /// Swap Shell for UMI
+    public fun swap_shell_for_umi(
         user: &signer,
-        apt_in: u64,
-        min_eth_out: u64,
-    ): u64 acquires Pool, PoolInfo, PoolRegistry {
+        shell_in: u64,
+        min_umi_out: u64
+    ): u64 acquires Pool, PoolRegistry, PoolInfo {
         let user_addr = signer::address_of(user);
         let pool_addr = get_pool_address();
         
         // Validate inputs
-        assert!(apt_in > 0, errors::insufficient_input_amount());
+        assert!(shell_in > 0, errors::insufficient_input_amount());
         assert!(!is_paused(pool_addr), errors::pool_paused());
-        
-        // Ensure user has token stores
-        eth_token::ensure_token_store(user);
-        apt_token::ensure_token_store(user);
-        
-        // Verify user has sufficient APT balance
-        let apt_balance = apt_token::balance_of(user_addr);
-        assert!(apt_balance >= apt_in, errors::insufficient_input_amount());
         
         // Get current pool state
         let pool = borrow_global_mut<Pool>(pool_addr);
         
-        // Calculate swap output with fee
-        let eth_out = math::calculate_swap_output_with_fee(
-            pool.apt_reserve,
-            pool.eth_reserve,
-            apt_in,
+        // Calculate output amount with fee
+        let umi_out = math::calculate_swap_output_with_fee(
+            pool.shell_reserve,
+            pool.umi_reserve,
+            shell_in,
             pool.fee_bps
         );
         
-        // Validate slippage
-        assert!(eth_out >= min_eth_out, errors::slippage_exceeded());
-        assert!(eth_out < pool.eth_reserve, errors::insufficient_output_amount());
-        
-        // Calculate fee for tracking
-        let fee_amount = (apt_in * pool.fee_bps) / 10000;
+        // Validate slippage and output
+        assert!(umi_out >= min_umi_out, errors::slippage_exceeded());
+        assert!(umi_out < pool.umi_reserve, errors::insufficient_liquidity());
         
         // Transfer tokens
-        apt_token::withdraw(user, apt_in);
-        eth_token::deposit(user, (eth_out as u256));
+        shell_token::withdraw(user, shell_in);
+        umi_token::deposit(user, (umi_out as u256));
         
-        // Update pool reserves
-        let old_eth_reserve = pool.eth_reserve;
-        let old_apt_reserve = pool.apt_reserve;
-        pool.apt_reserve = pool.apt_reserve + apt_in;
-        pool.eth_reserve = pool.eth_reserve - eth_out;
+        // Update reserves
+        pool.shell_reserve = pool.shell_reserve + shell_in;
+        pool.umi_reserve = pool.umi_reserve - umi_out;
         
-        // Update pool info
+        // Update volume and fees
         let pool_info = borrow_global_mut<PoolInfo>(pool_addr);
-        pool_info.total_volume = pool_info.total_volume + (apt_in as u128);
-        pool_info.total_fees = pool_info.total_fees + (fee_amount as u128);
+        pool_info.total_volume = pool_info.total_volume + (shell_in as u128);
+        let fee_amount = (shell_in as u128) * (pool.fee_bps as u128) / 10000;
+        pool_info.total_fees = pool_info.total_fees + fee_amount;
         
-        // Emit swap executed event
+        // Emit swap event
         events::emit_swap_executed(
             user_addr,
-            @aptos_framework, // APT token address (placeholder)
-            apt_in,
-            eth_out,
-            old_apt_reserve,
-            old_eth_reserve,
-            pool.apt_reserve,
-            pool.eth_reserve,
+            @shell_token,  // token_in address
+            shell_in,
+            umi_out,
+            pool.shell_reserve,
+            pool.umi_reserve,
+            pool.shell_reserve + shell_in,
+            pool.umi_reserve - umi_out
         );
         
-        eth_out
+        umi_out
     }
 
     // Helper functions
     fun get_pool_address(): address acquires PoolRegistry {
         let registry = borrow_global<PoolRegistry>(@poseidon_swap);
         assert!(registry.initialized, errors::pool_not_found());
-        registry.eth_apt_pool
+        registry.umi_shell_pool
     }
 
-    fun is_paused(pool_addr: address): bool acquires Pool {
+    #[view]
+    /// Check if the pool is paused
+    public fun is_paused(pool_addr: address): bool acquires Pool {
         if (!exists<Pool>(pool_addr)) {
             return true
         };
@@ -420,13 +447,13 @@ module poseidon_swap::pool {
     }
 
     #[view]
-    /// Get current pool reserves (ETH, APT)
+    /// Get current pool reserves (UMI, Shell)
     public fun get_reserves(pool_address: address): (u64, u64) acquires Pool {
         if (!exists<Pool>(pool_address)) {
             return (0, 0)
         };
         let pool = borrow_global<Pool>(pool_address);
-        (pool.eth_reserve, pool.apt_reserve)
+        (pool.umi_reserve, pool.shell_reserve)
     }
 
     #[view]
@@ -467,7 +494,7 @@ module poseidon_swap::pool {
     }
 
     #[view]
-    /// Get the main ETH/APT pool address
+    /// Get the main UMI/Shell pool address
     public fun get_main_pool_address(): address acquires PoolRegistry {
         get_pool_address()
     }
@@ -501,67 +528,56 @@ module poseidon_swap::pool {
         let pool_info = borrow_global<PoolInfo>(pool_address);
         assert!(admin_addr == pool_info.creator, errors::unauthorized());
         
-        // Validate fee range (0% to 10%)
-        assert!(new_fee_bps <= 1000, errors::invalid_fee());
+        // Validate new fee
+        assert!(new_fee_bps <= 10000, errors::invalid_swap_amount()); // Max 100% fee
         
         // Update fee
         let pool = borrow_global_mut<Pool>(pool_address);
-        let old_fee = pool.fee_bps;
         pool.fee_bps = new_fee_bps;
 
         // Emit fee updated event
-        events::emit_pool_fee_updated(admin_addr, pool_address, old_fee, new_fee_bps);
+        events::emit_pool_fee_updated(admin_addr, pool_address, new_fee_bps);
     }
 
-    /// Emergency stop all operations (admin function)
-    public fun emergency_stop(admin: &signer, pool_address: address) acquires Pool, PoolInfo {
-        // Verify admin is pool creator
+    /// Resume pool operations after emergency stop
+    public fun resume_operations(
+        admin: &signer,
+        pool_addr: address
+    ) acquires Pool {
+        // Verify caller is pool creator/admin
         let admin_addr = signer::address_of(admin);
-        let pool_info = borrow_global<PoolInfo>(pool_address);
-        assert!(admin_addr == pool_info.creator, errors::unauthorized());
+        assert!(admin_addr == pool_addr, errors::unauthorized());
         
-        // Force pause the pool
-        let pool = borrow_global_mut<Pool>(pool_address);
-        pool.is_paused = true;
-
-        // Emit emergency stop event (using pause event)
-        events::emit_pool_pause_status_changed(admin_addr, pool_address, true);
+        let pool = borrow_global_mut<Pool>(pool_addr);
+        pool.is_paused = false;
+        
+        // Emit resume event
+        events::emit_pool_resumed(pool_addr);
     }
 
-    /// Transfer pool ownership (admin function)
-    public fun transfer_ownership(admin: &signer, pool_address: address, new_owner: address) acquires PoolInfo {
-        // Verify admin is current pool creator
+    /// Update pool fee rate
+    public fun update_fee(
+        admin: &signer,
+        pool_addr: address,
+        new_fee_bps: u64
+    ) acquires Pool {
+        // Verify caller is pool creator/admin
         let admin_addr = signer::address_of(admin);
-        let pool_info = borrow_global_mut<PoolInfo>(pool_address);
-        assert!(admin_addr == pool_info.creator, errors::unauthorized());
+        assert!(admin_addr == pool_addr, errors::unauthorized());
         
-        // Validate new owner
-        assert!(new_owner != @0x0, errors::invalid_operation());
-        assert!(new_owner != admin_addr, errors::invalid_operation());
+        // Validate new fee
+        assert!(new_fee_bps <= 10000, errors::invalid_fee()); // Max 100%
         
-        // Transfer ownership
-        pool_info.creator = new_owner;
+        let pool = borrow_global_mut<Pool>(pool_addr);
+        pool.fee_bps = new_fee_bps;
+        
+        // Emit fee update event
+        events::emit_pool_fee_updated(admin_addr, pool_addr, new_fee_bps);
     }
 
     #[test_only]
     /// Initialize for testing
     public fun init_for_testing(admin: &signer) {
         init_module(admin);
-    }
-
-    #[test_only]
-    /// Check if pool is paused (for testing)
-    public fun is_paused_for_testing(pool_addr: address): bool acquires Pool {
-        is_paused(pool_addr)
-    }
-
-    #[view]
-    /// Get pool fee (view function)
-    public fun get_pool_fee(pool_address: address): u64 acquires Pool {
-        if (!exists<Pool>(pool_address)) {
-            return 0
-        };
-        let pool = borrow_global<Pool>(pool_address);
-        pool.fee_bps
     }
 } 

@@ -25,10 +25,10 @@ module poseidon_swap::math_tests {
         
         // Test precision for non-perfect squares
         let result = math::sqrt(15);
-        assert!(result >= 3 && result <= 4, 3); // sqrt(15) ≈ 3.87
+        assert!(result >= 3 && result <= 4, 3); // sqrt(15) ~= 3.87
         
         let result2 = math::sqrt(50);
-        assert!(result2 >= 7 && result2 <= 8, 4); // sqrt(50) ≈ 7.07
+        assert!(result2 >= 7 && result2 <= 8, 4); // sqrt(50) ~= 7.07
     }
 
     #[test]
@@ -166,23 +166,23 @@ module poseidon_swap::math_tests {
     #[test]
     fun test_liquidity_calculations() {
         // Test initial liquidity (total_supply = 0)
-        let apt_amount = 1000000;
-        let usdc_amount = 2000000;
-        let initial_lp = math::calculate_liquidity_amounts(apt_amount, usdc_amount, 0, 0, 0);
+        let umi_amount = 1000000;
+        let shell_amount = 2000000;
+        let initial_lp = math::calculate_liquidity_amounts(umi_amount, shell_amount, 0, 0, 0);
         
-        let expected_initial = math::sqrt(apt_amount * usdc_amount) - MIN_LIQUIDITY;
+        let expected_initial = math::sqrt(umi_amount * shell_amount) - MIN_LIQUIDITY;
         assert!(initial_lp == expected_initial, 1);
         
         // Test subsequent liquidity
-        let apt_reserve = 1000000;
-        let usdc_reserve = 2000000;
+        let umi_reserve = 1000000;
+        let shell_reserve = 2000000;
         let total_supply = 1000000;
         
         let subsequent_lp = math::calculate_liquidity_amounts(
-            apt_amount / 2, // Half the amounts
-            usdc_amount / 2,
-            apt_reserve,
-            usdc_reserve,
+            umi_amount / 2, // Half the amounts
+            shell_amount / 2,
+            umi_reserve,
+            shell_reserve,
             total_supply
         );
         
@@ -192,46 +192,46 @@ module poseidon_swap::math_tests {
 
     #[test]
     fun test_optimal_liquidity_calculation() {
-        let apt_reserve = 1000000;
-        let usdc_reserve = 2000000; // 2:1 ratio
+        let umi_reserve = 1000000;
+        let shell_reserve = 2000000; // 2:1 ratio
         
-        // Test when APT is limiting factor
-        let desired_apt = 100000;
-        let desired_usdc = 300000; // More than 2:1 ratio
+        // Test when UMI is limiting factor
+        let desired_umi = 100000;
+        let desired_shell = 300000; // More than 2:1 ratio
         
-        let (optimal_apt, optimal_usdc) = math::calculate_optimal_liquidity(
-            desired_apt, desired_usdc, apt_reserve, usdc_reserve
+        let (optimal_umi, optimal_shell) = math::calculate_optimal_liquidity(
+            desired_umi, desired_shell, umi_reserve, shell_reserve
         );
         
-        assert!(optimal_apt == desired_apt, 1);
-        assert!(optimal_usdc == 200000, 2); // Should be 2:1 ratio
+        assert!(optimal_umi == desired_umi, 1);
+        assert!(optimal_shell == 200000, 2); // Should be 2:1 ratio
         
-        // Test when USDC is limiting factor
-        let desired_apt2 = 200000;
-        let desired_usdc2 = 100000; // Less than 2:1 ratio
+        // Test when Shell is limiting factor
+        let desired_umi2 = 200000;
+        let desired_shell2 = 100000; // Less than 2:1 ratio
         
-        let (optimal_apt2, optimal_usdc2) = math::calculate_optimal_liquidity(
-            desired_apt2, desired_usdc2, apt_reserve, usdc_reserve
+        let (optimal_umi2, optimal_shell2) = math::calculate_optimal_liquidity(
+            desired_umi2, desired_shell2, umi_reserve, shell_reserve
         );
         
-        assert!(optimal_usdc2 == desired_usdc2, 3);
-        assert!(optimal_apt2 == 50000, 4); // Should be 1:2 ratio
+        assert!(optimal_shell2 == desired_shell2, 3);
+        assert!(optimal_umi2 == 50000, 4); // Should be 1:2 ratio
     }
 
     #[test]
     fun test_withdrawal_calculations() {
-        let apt_reserve = 1000000;
-        let usdc_reserve = 2000000;
+        let umi_reserve = 1000000;
+        let shell_reserve = 2000000;
         let total_supply = 1000000;
         let lp_amount = 100000; // 10% of total supply
         
-        let (apt_out, usdc_out) = math::calculate_withdrawal_amounts(
-            lp_amount, apt_reserve, usdc_reserve, total_supply
+        let (umi_out, shell_out) = math::calculate_withdrawal_amounts(
+            lp_amount, umi_reserve, shell_reserve, total_supply
         );
         
         // Should get 10% of each reserve
-        assert!(apt_out == 100000, 1);
-        assert!(usdc_out == 200000, 2);
+        assert!(umi_out == 100000, 1);
+        assert!(shell_out == 200000, 2);
     }
 
     #[test]

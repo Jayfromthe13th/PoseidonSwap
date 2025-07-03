@@ -114,64 +114,64 @@ module poseidon_swap::math {
 
     /// Calculate liquidity amounts for LP token minting with enhanced precision
     public fun calculate_liquidity_amounts(
-        apt_amount: u64,
-        usdc_amount: u64,
-        apt_reserve: u64,
-        usdc_reserve: u64,
+        umi_amount: u64,
+        shell_amount: u64,
+        umi_reserve: u64,
+        shell_reserve: u64,
         total_supply: u64
     ): u64 {
         if (total_supply == 0) {
             // Initial liquidity: geometric mean minus minimum liquidity
-            let initial_liquidity = sqrt(multiply_u64(apt_amount, usdc_amount));
+            let initial_liquidity = sqrt(multiply_u64(umi_amount, shell_amount));
             assert!(initial_liquidity > MIN_LIQUIDITY, errors::insufficient_liquidity_minted());
             initial_liquidity - MIN_LIQUIDITY
         } else {
-            assert!(apt_reserve > 0, errors::division_by_zero());
-            assert!(usdc_reserve > 0, errors::division_by_zero());
+            assert!(umi_reserve > 0, errors::division_by_zero());
+            assert!(shell_reserve > 0, errors::division_by_zero());
             
             // Subsequent liquidity: proportional to existing reserves
-            let apt_liquidity = multiply_u64(apt_amount, total_supply) / apt_reserve;
-            let usdc_liquidity = multiply_u64(usdc_amount, total_supply) / usdc_reserve;
-            min(apt_liquidity, usdc_liquidity)
+            let umi_liquidity = multiply_u64(umi_amount, total_supply) / umi_reserve;
+            let shell_liquidity = multiply_u64(shell_amount, total_supply) / shell_reserve;
+            min(umi_liquidity, shell_liquidity)
         }
     }
 
     /// Calculate optimal liquidity amounts to maintain pool ratio
-    /// Returns (optimal_apt_amount, optimal_usdc_amount)
+    /// Returns (optimal_umi_amount, optimal_shell_amount)
     public fun calculate_optimal_liquidity(
-        desired_apt: u64,
-        desired_usdc: u64,
-        apt_reserve: u64,
-        usdc_reserve: u64
+        desired_umi: u64,
+        desired_shell: u64,
+        umi_reserve: u64,
+        shell_reserve: u64
     ): (u64, u64) {
-        assert!(apt_reserve > 0, errors::division_by_zero());
-        assert!(usdc_reserve > 0, errors::division_by_zero());
+        assert!(umi_reserve > 0, errors::division_by_zero());
+        assert!(shell_reserve > 0, errors::division_by_zero());
         
         // Calculate the ratio-optimal amounts
-        let apt_based_usdc = multiply_u64(desired_apt, usdc_reserve) / apt_reserve;
-        let usdc_based_apt = multiply_u64(desired_usdc, apt_reserve) / usdc_reserve;
+        let umi_based_shell = multiply_u64(desired_umi, shell_reserve) / umi_reserve;
+        let shell_based_umi = multiply_u64(desired_shell, umi_reserve) / shell_reserve;
         
-        if (apt_based_usdc <= desired_usdc) {
-            (desired_apt, apt_based_usdc)
+        if (umi_based_shell <= desired_shell) {
+            (desired_umi, umi_based_shell)
         } else {
-            (usdc_based_apt, desired_usdc)
+            (shell_based_umi, desired_shell)
         }
     }
 
     /// Calculate withdrawal amounts when burning LP tokens
     public fun calculate_withdrawal_amounts(
         lp_amount: u64,
-        apt_reserve: u64,
-        usdc_reserve: u64,
+        umi_reserve: u64,
+        shell_reserve: u64,
         total_supply: u64
     ): (u64, u64) {
         assert!(total_supply > 0, errors::division_by_zero());
         assert!(lp_amount <= total_supply, errors::insufficient_liquidity_burned());
 
-        let apt_amount = multiply_u64(lp_amount, apt_reserve) / total_supply;
-        let usdc_amount = multiply_u64(lp_amount, usdc_reserve) / total_supply;
+        let umi_amount = multiply_u64(lp_amount, umi_reserve) / total_supply;
+        let shell_amount = multiply_u64(lp_amount, shell_reserve) / total_supply;
         
-        (apt_amount, usdc_amount)
+        (umi_amount, shell_amount)
     }
 
     /// Enhanced square root function using Babylonian method with better precision
@@ -310,13 +310,13 @@ module poseidon_swap::math {
 
     #[view]
     public fun quote_liquidity(
-        apt_amount: u64,
-        usdc_amount: u64,
-        apt_reserve: u64,
-        usdc_reserve: u64,
+        umi_amount: u64,
+        shell_amount: u64,
+        umi_reserve: u64,
+        shell_reserve: u64,
         total_supply: u64
     ): u64 {
-        calculate_liquidity_amounts(apt_amount, usdc_amount, apt_reserve, usdc_reserve, total_supply)
+        calculate_liquidity_amounts(umi_amount, shell_amount, umi_reserve, shell_reserve, total_supply)
     }
 
     #[view]
@@ -330,12 +330,12 @@ module poseidon_swap::math {
 
     #[view]
     public fun quote_optimal_liquidity(
-        desired_apt: u64,
-        desired_usdc: u64,
-        apt_reserve: u64,
-        usdc_reserve: u64
+        desired_umi: u64,
+        desired_shell: u64,
+        umi_reserve: u64,
+        shell_reserve: u64
     ): (u64, u64) {
-        calculate_optimal_liquidity(desired_apt, desired_usdc, apt_reserve, usdc_reserve)
+        calculate_optimal_liquidity(desired_umi, desired_shell, umi_reserve, shell_reserve)
     }
 
     // Constants getters for external use
