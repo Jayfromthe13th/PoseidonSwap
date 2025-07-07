@@ -1,5 +1,7 @@
 # Build artifacts
 build/
+.next/
+node_modules/
 
 # All source files are now included:
 # sources/math.move - mathematical engine
