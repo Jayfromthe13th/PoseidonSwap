@@ -1,5 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ArrowDownIcon } from '@heroicons/react/24/solid';
+import { useAccount, useChainId } from 'wagmi';
+import WalletButton from '../components/WalletButton';
+import { umiDevnet } from '../lib/wagmi';
 
 // Custom SVG components
 const TridentIcon = () => (
@@ -20,14 +23,48 @@ export default function SwapInterface() {
   const [toAmount, setToAmount] = useState('');
   const [fromToken, setFromToken] = useState('UMI');
   const [toToken, setToToken] = useState('SHELL');
+  const [mounted, setMounted] = useState(false);
+  
+  const { isConnected } = useAccount();
+  const chainId = useChainId();
+  const isOnUmiNetwork = chainId === umiDevnet.id;
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleSwap = async () => {
-    // TODO: Implement swap functionality
+    if (!isConnected) {
+      alert('Please connect your wallet first');
+      return;
+    }
+    
+    if (!isOnUmiNetwork) {
+      alert('Please switch to Umi Devnet');
+      return;
+    }
+    
+    // TODO: Implement actual swap functionality with smart contracts
     console.log('Swap:', { fromAmount, fromToken, toAmount, toToken });
+    alert('Swap functionality will be implemented with smart contract integration');
   };
+
+  const getSwapButtonText = () => {
+    if (!mounted) return 'Loading...';
+    if (!isConnected) return 'Connect Wallet to Swap';
+    if (!isOnUmiNetwork) return 'Switch to Umi Devnet';
+    return 'Swap';
+  };
+
+  const isSwapDisabled = !mounted || !isConnected || !isOnUmiNetwork;
 
   return (
     <div className="min-h-screen bg-blue-950 text-white flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Wallet Button - Top Right */}
+      <div className="fixed top-6 right-6 z-20">
+        <WalletButton />
+      </div>
+
       {/* Animated Background */}
       <div className="absolute inset-0 overflow-hidden">
         {/* Wave Container */}
@@ -117,15 +154,27 @@ export default function SwapInterface() {
         {/* Swap Button */}
         <button
           onClick={handleSwap}
-          className="w-full bg-gradient-to-r from-blue-500/80 to-cyan-500/80 hover:from-blue-600/80 hover:to-cyan-600/80 text-white font-bold py-4 px-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-blue-500/25 transform hover:scale-[1.02] backdrop-blur-sm"
+          disabled={isSwapDisabled}
+          className={`w-full font-bold py-4 px-4 rounded-xl transition-all duration-200 shadow-lg transform hover:scale-[1.02] backdrop-blur-sm ${
+            isSwapDisabled
+              ? 'bg-gray-500/20 text-gray-400 cursor-not-allowed'
+              : 'bg-gradient-to-r from-blue-500/80 to-cyan-500/80 hover:from-blue-600/80 hover:to-cyan-600/80 text-white hover:shadow-blue-500/25'
+          }`}
         >
-          Swap
+          {getSwapButtonText()}
         </button>
 
         {/* Exchange Rate */}
         <div className="mt-4 text-center text-sm text-blue-300/70">
           1 UMI = 0.00234 SHELL
         </div>
+        
+        {/* Connection Status */}
+        {mounted && isConnected && (
+          <div className="mt-2 text-center text-xs text-blue-300/50">
+            {isOnUmiNetwork ? '✓ Ready to swap on Umi Devnet' : '⚠️ Switch to Umi Devnet to swap'}
+          </div>
+        )}
       </div>
     </div>
   );

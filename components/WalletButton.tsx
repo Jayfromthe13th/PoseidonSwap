@@ -1,83 +1,120 @@
-import { useWallet } from './WalletProvider';
+import { useConnect, useDisconnect, useAccount, useChainId, useSwitchChain } from 'wagmi';
+import { injected } from 'wagmi/connectors';
+import { umiDevnet } from '../lib/wagmi';
+import { useEffect, useState } from 'react';
 
-export function WalletButton() {
-  const { 
-    isConnected, 
-    address, 
-    chainId, 
-    isConnecting, 
-    connectWallet, 
-    disconnectWallet,
-    switchToUmiDevnet 
-  } = useWallet();
+export default function WalletButton() {
+  const { connect, isLoading, error } = useConnect();
+  const { disconnect, isPending: isDisconnecting } = useDisconnect();
+  const { address, isConnected } = useAccount();
+  const chainId = useChainId();
+  const { switchChain } = useSwitchChain();
+  
+  // State to track if component has mounted (client-side)
+  const [mounted, setMounted] = useState(false);
 
-  const formatAddress = (addr: string) => {
-    return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+  // Set mounted to true after component mounts (client-side only)
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Debug logging
+  console.log('WalletButton state:', { isConnected, address, chainId, isDisconnecting, mounted });
+
+  // Don't render wallet-specific content until mounted (prevents hydration mismatch)
+  if (!mounted) {
+    return (
+      <div className="bg-gradient-to-r from-blue-500/20 to-cyan-500/20 text-white px-4 py-2 rounded-lg backdrop-blur-lg border border-blue-500/20">
+        Loading...
+      </div>
+    );
+  }
+
+  const handleConnect = () => {
+    connect({ connector: injected() });
   };
 
-  const isOnUmiDevnet = chainId === 42069; // Umi devnet chain ID
-  
-  // Debug logging
-  console.log('WalletButton - Current chainId:', chainId, 'isOnUmiDevnet:', isOnUmiDevnet);
+  const handleDisconnect = async () => {
+    try {
+      console.log('Attempting to disconnect wallet...');
+      await disconnect();
+      console.log('Wallet disconnected successfully');
+      
+      // Force a small delay to ensure state updates
+      setTimeout(() => {
+        console.log('Post-disconnect state:', { isConnected, address });
+        // If still connected after disconnect, try to refresh the page
+        if (isConnected) {
+          console.log('Still connected after disconnect, forcing page refresh...');
+          window.location.reload();
+        }
+      }, 500);
+    } catch (error) {
+      console.error('Error disconnecting wallet:', error);
+      // Try alternative disconnect methods
+      if (window.ethereum) {
+        try {
+          console.log('Trying alternative disconnect method...');
+          await window.ethereum.request({
+            method: 'wallet_requestPermissions',
+            params: [{ eth_accounts: {} }]
+          });
+        } catch (altError) {
+          console.error('Alternative disconnect failed:', altError);
+        }
+      }
+    }
+  };
 
-  if (isConnected && address) {
+  const handleSwitchToUmi = () => {
+    switchChain({ chainId: umiDevnet.id });
+  };
+
+  const isOnUmiNetwork = chainId === umiDevnet.id;
+
+  if (isConnected) {
     return (
-      <div className="flex flex-col gap-2 items-end">
-        {/* Top row: Network indicator and address */}
+      <div className="flex flex-col gap-2">
         <div className="flex items-center gap-2">
-          {/* Network indicator */}
-          <div className={`px-2 py-1 rounded-lg text-xs font-medium ${
-            isOnUmiDevnet 
-              ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
-              : 'bg-orange-500/20 text-orange-400 border border-orange-500/30'
-          }`}>
-            {isOnUmiDevnet ? 'Umi Devnet' : `Chain ${chainId}`}
+          <div className="bg-blue-900/40 backdrop-blur-lg rounded-lg px-3 py-2 border border-blue-500/20">
+            <span className="text-sm text-blue-200">
+              {address?.slice(0, 6)}...{address?.slice(-4)}
+            </span>
           </div>
-          
-          {/* Address display */}
-          <div className="px-3 py-2 bg-blue-900/20 text-blue-200 rounded-lg border border-blue-500/20 text-sm font-mono">
-            {formatAddress(address)}
-          </div>
-        </div>
-        
-        {/* Bottom row: Action buttons */}
-        <div className="flex items-center gap-2">
-          {/* Switch to Umi button if not on Umi */}
-          {!isOnUmiDevnet && (
-            <button
-              onClick={switchToUmiDevnet}
-              className="px-3 py-1 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 text-xs rounded-lg border border-blue-500/30 transition-colors"
-            >
-              Switch to Umi
-            </button>
-          )}
-          
-          {/* Disconnect button */}
           <button
-            onClick={disconnectWallet}
-            className="px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-400 text-xs rounded-lg border border-red-500/30 transition-colors"
+            onClick={handleDisconnect}
+            disabled={isDisconnecting}
+            className="bg-red-500/20 hover:bg-red-500/30 text-red-300 text-sm px-3 py-2 rounded-lg backdrop-blur-lg border border-red-500/20 hover:border-red-500/40 transition-all duration-200 disabled:opacity-50"
           >
-            Disconnect
+            {isDisconnecting ? 'Disconnecting...' : 'Disconnect'}
           </button>
         </div>
+        
+        {!isOnUmiNetwork && (
+          <button
+            onClick={handleSwitchToUmi}
+            className="bg-orange-500/20 hover:bg-orange-500/30 text-orange-300 text-sm px-3 py-2 rounded-lg backdrop-blur-lg border border-orange-500/20 hover:border-orange-500/40 transition-all duration-200"
+          >
+            Switch to Umi Devnet
+          </button>
+        )}
+        
+        {isOnUmiNetwork && (
+          <div className="text-xs text-green-400 text-center">
+            ✓ Connected to Umi Devnet
+          </div>
+        )}
       </div>
     );
   }
 
   return (
     <button
-      onClick={connectWallet}
-      disabled={isConnecting}
-      className="px-6 py-3 bg-gradient-to-r from-blue-500/80 to-cyan-500/80 hover:from-blue-600/80 hover:to-cyan-600/80 text-white font-bold rounded-xl transition-all duration-200 shadow-lg hover:shadow-blue-500/25 transform hover:scale-[1.02] backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed"
+      onClick={handleConnect}
+      disabled={isLoading}
+      className="bg-gradient-to-r from-blue-500/20 to-cyan-500/20 hover:from-blue-500/30 hover:to-cyan-500/30 text-white px-4 py-2 rounded-lg backdrop-blur-lg border border-blue-500/20 hover:border-blue-500/40 transition-all duration-200 disabled:opacity-50"
     >
-      {isConnecting ? (
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-          Connecting...
-        </div>
-      ) : (
-        'Connect Rabby Wallet'
-      )}
+      {isLoading ? 'Connecting...' : 'Connect Wallet'}
     </button>
   );
 } 
