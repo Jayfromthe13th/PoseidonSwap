@@ -11,7 +11,7 @@ shell_token = "0xCCEA645003667e2d141d3Fb60Dc2eF63A182dA94"
 
 [dev-addresses]
 
-[dependencies]
-AptosFramework = { git = "https://github.com/aptos-labs/aptos-framework.git", rev = "aptos-release-v1.27", subdir = "aptos-framework" }
-
-[dev-dependencies]
+[dependencies.AptosFramework]
+git = "https://github.com/aptos-labs/aptos-framework.git"
+rev = "aptos-release-v1.27"
+subdir = "aptos-framework"

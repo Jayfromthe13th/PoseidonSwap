@@ -22,5 +22,12 @@ module.exports = {
     tests: "./test",
     cache: "./cache",
     artifacts: "./artifacts"
+  },
+  moveConfig: {
+    packages: {
+      poseidon_swap: {
+        path: "./contracts/poseidon_swap"  // Points to the directory containing Move.toml
+      }
+    }
   }
 }; 
