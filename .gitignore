@@ -48,3 +48,16 @@ coverage/
 .cache/
 .npm
 .eslintcache
+
+# Aptos specific
+.aptos/
+
+# IDE and editor files
+.cursor/
+.vscode/
+.idea/
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+Desktop.ini

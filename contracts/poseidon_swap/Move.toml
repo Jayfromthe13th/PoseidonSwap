@@ -8,10 +8,13 @@ std = "0x1"
 poseidon_swap = "0xCCEA645003667e2d141d3Fb60Dc2eF63A182dA94"
 umi_token = "0xCCEA645003667e2d141d3Fb60Dc2eF63A182dA94"
 shell_token = "0xCCEA645003667e2d141d3Fb60Dc2eF63A182dA94"
+apt_token = "0xCCEA645003667e2d141d3Fb60Dc2eF63A182dA94"
 
 [dev-addresses]
 
-[dependencies]
-AptosFramework = { git = "https://github.com/aptos-labs/aptos-framework.git", rev = "aptos-release-v1.27", subdir = "aptos-framework" }
+[dependencies.AptosFramework]
+git = "https://github.com/aptos-labs/aptos-framework.git"
+rev = "aptos-release-v1.27"
+subdir = "aptos-framework"
 
 [dev-dependencies]

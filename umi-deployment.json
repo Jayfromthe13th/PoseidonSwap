@@ -1,0 +1,50 @@
+{
+  "network": "Umi Devnet",
+  "rpcUrl": "https://devnet.uminetwork.com",
+  "deployer": "0xCCEA645003667e2d141d3Fb60Dc2eF63A182dA94",
+  "timestamp": "2025-07-10T22:52:00.265Z",
+  "modules": [
+    {
+      "name": "apt_token",
+      "address": "0xCCEA645003667e2d141d3Fb60Dc2eF63A182dA94::apt_token",
+      "bytecode": "C:\\Users\\jorda\\OneDrive\\Desktop\\PPOSWAP\\contracts\\poseidon_swap\\build\\poseidon_swap\\bytecode_modules/apt_token.mv"
+    },
+    {
+      "name": "errors",
+      "address": "0xCCEA645003667e2d141d3Fb60Dc2eF63A182dA94::errors",
+      "bytecode": "C:\\Users\\jorda\\OneDrive\\Desktop\\PPOSWAP\\contracts\\poseidon_swap\\build\\poseidon_swap\\bytecode_modules/errors.mv"
+    },
+    {
+      "name": "events",
+      "address": "0xCCEA645003667e2d141d3Fb60Dc2eF63A182dA94::events",
+      "bytecode": "C:\\Users\\jorda\\OneDrive\\Desktop\\PPOSWAP\\contracts\\poseidon_swap\\build\\poseidon_swap\\bytecode_modules/events.mv"
+    },
+    {
+      "name": "lp_token",
+      "address": "0xCCEA645003667e2d141d3Fb60Dc2eF63A182dA94::lp_token",
+      "bytecode": "C:\\Users\\jorda\\OneDrive\\Desktop\\PPOSWAP\\contracts\\poseidon_swap\\build\\poseidon_swap\\bytecode_modules/lp_token.mv"
+    },
+    {
+      "name": "math",
+      "address": "0xCCEA645003667e2d141d3Fb60Dc2eF63A182dA94::math",
+      "bytecode": "C:\\Users\\jorda\\OneDrive\\Desktop\\PPOSWAP\\contracts\\poseidon_swap\\build\\poseidon_swap\\bytecode_modules/math.mv"
+    },
+    {
+      "name": "pool",
+      "address": "0xCCEA645003667e2d141d3Fb60Dc2eF63A182dA94::pool",
+      "bytecode": "C:\\Users\\jorda\\OneDrive\\Desktop\\PPOSWAP\\contracts\\poseidon_swap\\build\\poseidon_swap\\bytecode_modules/pool.mv"
+    },
+    {
+      "name": "shell_token",
+      "address": "0xCCEA645003667e2d141d3Fb60Dc2eF63A182dA94::shell_token",
+      "bytecode": "C:\\Users\\jorda\\OneDrive\\Desktop\\PPOSWAP\\contracts\\poseidon_swap\\build\\poseidon_swap\\bytecode_modules/shell_token.mv"
+    },
+    {
+      "name": "umi_token",
+      "address": "0xCCEA645003667e2d141d3Fb60Dc2eF63A182dA94::umi_token",
+      "bytecode": "C:\\Users\\jorda\\OneDrive\\Desktop\\PPOSWAP\\contracts\\poseidon_swap\\build\\poseidon_swap\\bytecode_modules/umi_token.mv"
+    }
+  ],
+  "explorer": "https://devnet.explorer.moved.network",
+  "status": "Ready for deployment"
+}
