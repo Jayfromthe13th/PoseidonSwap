@@ -11,23 +11,6 @@ module.exports = {
     devnet: {
       url: "https://devnet.uminetwork.com",
       accounts: [PRIVATE_KEY],
-      chainId: 42069 // Umi testnet chain ID
-    }
-  },
-  solidity: {
-    version: "0.8.19"
-  },
-  paths: {
-    sources: "./contracts",
-    tests: "./test",
-    cache: "./cache",
-    artifacts: "./artifacts"
-  },
-  moveConfig: {
-    packages: {
-      poseidon_swap: {
-        path: "./contracts/poseidon_swap"  // Points to the directory containing Move.toml
-      }
     }
   }
 }; 
