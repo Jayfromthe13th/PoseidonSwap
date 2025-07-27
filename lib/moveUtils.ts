@@ -1,0 +1,121 @@
+import { AccountAddress, EntryFunction, FixedBytes, TransactionPayloadEntryFunction, Serializer } from '@aptos-labs/ts-sdk';
+
+// Global type extension for window.ethereum
+declare global {
+  interface Window {
+    ethereum?: any;
+  }
+}
+
+export const getAccount = async (): Promise<string> => {
+  const [account] = await window.ethereum!.request({
+    method: 'eth_requestAccounts',
+  });
+  return account;
+};
+
+export const getMoveAccount = async (): Promise<string> => {
+  const account = await getAccount();
+  // Aptos SDK requires 64-character addresses, so we need to pad the Ethereum address
+  // Remove '0x', pad to 64 chars, then add '0x' back
+  const hexPart = account.slice(2).toLowerCase();
+  const paddedHex = hexPart.padStart(64, '0');
+  const paddedAddress = '0x' + paddedHex;
+  return paddedAddress;
+};
+
+// Simplified client functions - removed for now to avoid import issues
+
+/// Converts address into serialized signer object.
+export const getSigner = (address: string) => {
+  /// Signer value is defined as Signer(AccountAddress) in Rust, so when it's deserialized it needs
+  /// an extra 0 in the beginning to indicate that the address is the first field.
+  /// Then the entire data is serialized as a vector of size 33 bytes.
+  const addressBytes = [33, 0, ...AccountAddress.fromString(address).toUint8Array()];
+  return new FixedBytes(new Uint8Array(addressBytes));
+};
+
+export const extractOutput = (data: `0x${string}` | undefined) => {
+  if (!data) throw Error('No data found');
+  // For Aptos Move on UMI Network, we'll parse the result differently
+  // This is a simplified version - might need adjustment based on actual return format
+  const bytes = new Uint8Array(Buffer.from(data.slice(2), 'hex'));
+  return bytes;
+};
+
+// Create payload for minting UMI tokens
+export const mintUMIPayload = async (amount: string): Promise<`0x${string}`> => {
+  const moveAccount = await getMoveAccount();
+  const signer = getSigner(moveAccount);
+  
+  // Convert amount to u256 (18 decimals)
+  const amountU256 = BigInt(parseFloat(amount) * Math.pow(10, 18));
+  
+  // Use AccountAddress directly instead of FixedBytes signer
+  const userAddress = AccountAddress.fromString(moveAccount);
+  
+  const entryFunction = EntryFunction.build(
+    `${moveAccount}::umi_token`, 
+    'mint_for_testing', 
+    [], 
+    [userAddress, amountU256]
+  );
+  
+  const transactionPayload = new TransactionPayloadEntryFunction(entryFunction);
+  return transactionPayload.bcsToHex().toString() as `0x${string}`;
+};
+
+// Create payload for swapping UMI for Shell
+export const swapUMIPayload = async (umiAmount: string): Promise<`0x${string}`> => {
+  console.log('Creating swap payload for amount:', umiAmount);
+  
+  const moveAccount = await getMoveAccount();
+  console.log('Move account:', moveAccount);
+  
+  const signer = getSigner(moveAccount);
+  console.log('Signer created');
+  
+  // Convert to u64 (using pool scaling)
+  const amountU64 = Math.floor(parseFloat(umiAmount) * Math.pow(10, 8)); // 8 decimals for pool
+  const minShellOut = 1; // Minimum shell tokens out
+  console.log('Amount u64:', amountU64, 'Min shell out:', minShellOut);
+  
+  console.log('Building entry function...');
+  
+  // Try using AccountAddress directly instead of FixedBytes signer
+  const userAddress = AccountAddress.fromString(moveAccount);
+  
+  const entryFunction = EntryFunction.build(
+    `${moveAccount}::pool`, 
+    'swap_umi_for_shell', 
+    [], 
+    [userAddress, BigInt(amountU64), BigInt(minShellOut)]
+  );
+  console.log('Entry function built');
+  
+  console.log('Creating transaction payload...');
+  const transactionPayload = new TransactionPayloadEntryFunction(entryFunction);
+  console.log('Transaction payload created');
+  
+  console.log('Converting to hex...');
+  const hex = transactionPayload.bcsToHex().toString() as `0x${string}`;
+  console.log('Hex result:', hex);
+  
+  return hex;
+};
+
+// Get UMI balance payload
+export const getUMIBalancePayload = async (): Promise<`0x${string}`> => {
+  const moveAccount = await getMoveAccount();
+  const address = AccountAddress.fromString(moveAccount);
+  
+  const entryFunction = EntryFunction.build(
+    `${moveAccount}::umi_token`, 
+    'balance_of', 
+    [], 
+    [address]
+  );
+  
+  const transactionPayload = new TransactionPayloadEntryFunction(entryFunction);
+  return transactionPayload.bcsToHex().toString() as `0x${string}`;
+}; 
