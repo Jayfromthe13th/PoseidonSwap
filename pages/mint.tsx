@@ -1,10 +1,17 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeftIcon } from '@heroicons/react/24/solid';
-import { useAccount, useChainId } from 'wagmi';
+import { ArrowLeftIcon } from '@heroicons/react/20/solid';
 import { useRouter } from 'next/router';
 import WalletButton from '../components/WalletButton';
-import { umiDevnet } from '../lib/wagmi';
 import { mintUMITokens, getUMIBalance } from '../lib/contractUtils';
+
+// Global type extension for wallet
+declare global {
+  interface Window {
+    ethereum?: {
+      request?: (...args: any[]) => Promise<any>;
+    };
+  }
+}
 
 // Custom SVG components (reused from main page)
 const TridentIcon = () => (
@@ -26,25 +33,41 @@ export default function MintPage() {
   const [currentBalance, setCurrentBalance] = useState('0');
   const [isLoading, setIsLoading] = useState(false);
   
-  const { isConnected, address } = useAccount();
-  const chainId = useChainId();
+  // Direct wallet state management
+  const [directAddress, setDirectAddress] = useState<string>('');
+  const [currentChainId, setCurrentChainId] = useState<number>(42069);
+  
   const router = useRouter();
-  const isOnUmiNetwork = chainId === umiDevnet.id;
+  const isConnected = !!directAddress;
+  const isOnUmiNetwork = currentChainId === 42069;
 
   useEffect(() => {
     setMounted(true);
+    
+    // Check wallet connection status
+    if (typeof window !== 'undefined' && window.ethereum) {
+      // Check existing connection
+      window.ethereum.request({ method: 'eth_accounts' })
+        .then((accounts: string[]) => {
+          if (accounts.length > 0) {
+            setDirectAddress(accounts[0]);
+          }
+        })
+        .catch(console.error);
+        
+      // Check current chain
+      window.ethereum.request({ method: 'eth_chainId' })
+        .then((chainId: string) => {
+          setCurrentChainId(parseInt(chainId, 16));
+        })
+        .catch(console.error);
+    }
   }, []);
 
-  useEffect(() => {
-    if (mounted) {
-      fetchBalance();
-    }
-  }, [isConnected, address, mounted]);
-
   const fetchBalance = async () => {
-    if (isConnected && address && mounted) {
+    if (isConnected && directAddress && mounted) {
       try {
-        const balance = await getUMIBalance(address);
+        const balance = await getUMIBalance(directAddress as `0x${string}`);
         setCurrentBalance(balance);
       } catch (error) {
         console.error('Error fetching balance:', error);
@@ -53,27 +76,20 @@ export default function MintPage() {
     }
   };
 
+  useEffect(() => {
+    fetchBalance();
+  }, [isConnected, directAddress, mounted]);
+
   const handleMint = async () => {
-    if (!isConnected) {
-      alert('Please connect your wallet first');
-      return;
-    }
-    
-    if (!isOnUmiNetwork) {
-      alert('Please switch to Umi Devnet');
+    if (!mintAmount || !directAddress) {
+      alert('Please enter an amount and connect your wallet');
       return;
     }
 
-    if (!mintAmount || parseFloat(mintAmount) <= 0) {
-      alert('Please enter a valid amount');
-      return;
-    }
-    
     setIsLoading(true);
     
     try {
-      // Call the actual mint function
-      const txHash = await mintUMITokens(mintAmount, address!);
+      const txHash = await mintUMITokens(mintAmount, directAddress as `0x${string}`);
       
       // Update balance after successful mint
       await fetchBalance();
@@ -85,8 +101,8 @@ export default function MintPage() {
       setMintAmount('');
       
     } catch (error) {
-      console.error('Minting failed:', error);
-      alert(`❌ Failed to mint UMI tokens: ${error.message || error}`);
+      console.error('Mint failed:', error);
+      alert(`❌ Mint failed: ${error.message || error}`);
     } finally {
       setIsLoading(false);
     }
@@ -96,15 +112,14 @@ export default function MintPage() {
     setMintAmount(amount);
   };
 
-  const getMintButtonText = () => {
-    if (!mounted) return 'Loading...';
-    if (isLoading) return 'Minting...';
-    if (!isConnected) return 'Connect Wallet to Mint';
-    if (!isOnUmiNetwork) return 'Switch to Umi Devnet';
-    return 'Mint UMI Tokens';
-  };
-
-  const isMintDisabled = !mounted || isLoading || !isConnected || !isOnUmiNetwork || !mintAmount || parseFloat(mintAmount) <= 0;
+  // Don't render wallet-specific content until mounted (prevents hydration mismatch)
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-cyan-900 flex items-center justify-center">
+        <div className="text-white text-xl">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-blue-950 text-white flex items-center justify-center p-4 relative overflow-hidden">
@@ -190,14 +205,14 @@ export default function MintPage() {
         {/* Mint Button */}
         <button
           onClick={handleMint}
-          disabled={isMintDisabled}
+          disabled={!isConnected || !isOnUmiNetwork || !mintAmount || parseFloat(mintAmount) <= 0}
           className={`w-full font-bold py-4 px-4 rounded-xl transition-all duration-200 shadow-lg transform hover:scale-[1.02] backdrop-blur-sm ${
-            isMintDisabled
+            isLoading
               ? 'bg-gray-500/20 text-gray-400 cursor-not-allowed'
               : 'bg-gradient-to-r from-green-500/80 to-emerald-500/80 hover:from-green-600/80 hover:to-emerald-600/80 text-white hover:shadow-green-500/25'
           }`}
         >
-          {getMintButtonText()}
+          {isLoading ? 'Minting...' : 'Mint UMI Tokens'}
         </button>
 
         {/* Info Text */}

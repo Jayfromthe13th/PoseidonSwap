@@ -1,6 +1,5 @@
 import { createConfig, http } from 'wagmi';
-import { mainnet, sepolia } from 'wagmi/chains';
-import { getDefaultConfig } from '@rabby-wallet/rabbykit';
+import { injected } from 'wagmi/connectors';
 
 // Define Umi Devnet chain
 export const umiDevnet = {
@@ -25,15 +24,20 @@ export const umiDevnet = {
   testnet: true,
 } as const;
 
-export const config = createConfig(
-  getDefaultConfig({
-    appName: "PoseidonSwap",
-    projectId: "58a22d2bc1c793fc31c117ad9ceba8d9", // Using example project ID for now
-    chains: [umiDevnet, mainnet, sepolia],
-    transports: {
-      [umiDevnet.id]: http(),
-      [mainnet.id]: http(),
-      [sepolia.id]: http(),
-    },
-  })
-); 
+// Create a simple Rabby-only connector
+const rabbyConnector = injected({
+  target: () => ({
+    id: 'rabby',
+    name: 'Rabby Wallet',
+    provider: typeof window !== 'undefined' ? window.ethereum : undefined,
+  }),
+});
+
+// Configure wagmi for Rabby only
+export const config = createConfig({
+  chains: [umiDevnet],
+  connectors: [rabbyConnector],
+  transports: {
+    [umiDevnet.id]: http(),
+  },
+}); 

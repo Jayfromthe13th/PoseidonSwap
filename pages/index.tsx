@@ -1,9 +1,16 @@
 import { useState, useEffect } from 'react';
-import { ArrowDownIcon } from '@heroicons/react/24/solid';
-import { useAccount, useChainId } from 'wagmi';
+import { ArrowDownIcon } from '@heroicons/react/20/solid';
 import WalletButton from '../components/WalletButton';
-import { umiDevnet } from '../lib/wagmi';
-import { swapUMIForShell, getUMIBalance } from '../lib/contractUtils';
+import { swapUMIForShell, getUMIBalance, runDiagnostics } from '../lib/contractUtils';
+
+// Global type extension for wallet
+declare global {
+  interface Window {
+    ethereum?: {
+      request?: (...args: any[]) => Promise<any>;
+    };
+  }
+}
 
 // Custom SVG components
 const TridentIcon = () => (
@@ -28,12 +35,35 @@ export default function SwapInterface() {
   const [isLoading, setIsLoading] = useState(false);
   const [umiBalance, setUmiBalance] = useState('0');
   
-  const { isConnected, address } = useAccount();
-  const chainId = useChainId();
-  const isOnUmiNetwork = chainId === umiDevnet.id;
+  // Direct wallet state management
+  const [directAddress, setDirectAddress] = useState<string>('');
+  const [currentChainId, setCurrentChainId] = useState<number>(42069);
+  
+  const isConnected = !!directAddress;
+  const address = directAddress;
+  const isOnUmiNetwork = currentChainId === 42069;
 
   useEffect(() => {
     setMounted(true);
+    
+    // Check wallet connection status
+    if (typeof window !== 'undefined' && window.ethereum) {
+      // Check existing connection
+      window.ethereum.request({ method: 'eth_accounts' })
+        .then((accounts: string[]) => {
+          if (accounts.length > 0) {
+            setDirectAddress(accounts[0]);
+          }
+        })
+        .catch(console.error);
+        
+      // Check current chain
+      window.ethereum.request({ method: 'eth_chainId' })
+        .then((chainId: string) => {
+          setCurrentChainId(parseInt(chainId, 16));
+        })
+        .catch(console.error);
+    }
   }, []);
 
   useEffect(() => {
@@ -65,37 +95,21 @@ export default function SwapInterface() {
   };
 
   const handleSwap = async () => {
-    if (!isConnected) {
-      alert('Please connect your wallet first');
-      return;
-    }
-    
-    if (!isOnUmiNetwork) {
-      alert('Please switch to Umi Devnet');
+    if (!fromAmount || !directAddress) {
+      alert('Please enter an amount and connect your wallet');
       return;
     }
 
-    if (!fromAmount || parseFloat(fromAmount) <= 0) {
-      alert('Please enter a valid amount');
-      return;
-    }
-
-    if (fromToken !== 'UMI') {
-      alert('Currently only UMI → SHELL swaps are supported');
-      return;
-    }
-    
     setIsLoading(true);
     
     try {
-      // Call the actual swap function
-      const txHash = await swapUMIForShell(fromAmount, address!);
+      const txHash = await swapUMIForShell(fromAmount, directAddress as `0x${string}`);
       
       // Update balance after successful swap
       await fetchBalance();
       
       // Show success message
-      alert(`✅ Successfully swapped ${fromAmount} UMI for ${toAmount} SHELL!\nTransaction: ${txHash}`);
+      alert(`✅ Successfully swapped ${fromAmount} UMI for SHELL!\nTransaction: ${txHash}`);
       
       // Clear the inputs
       setFromAmount('');
@@ -103,9 +117,61 @@ export default function SwapInterface() {
       
     } catch (error) {
       console.error('Swap failed:', error);
-      alert(`❌ Failed to swap tokens: ${error.message || error}`);
+      alert(`❌ Swap failed: ${error.message || error}`);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Debug functions for testing
+  const testWalletExists = async () => {
+    try {
+      const { testWalletExists } = await import('../lib/contractUtils');
+      const result = await testWalletExists();
+      alert(result ? '✅ Wallet exists!' : '❌ No wallet found');
+    } catch (error) {
+      alert(`❌ Wallet check failed: ${error.message}`);
+    }
+  };
+
+  const testConnection = async () => {
+    try {
+      const { testWalletConnection } = await import('../lib/contractUtils');
+      const result = await testWalletConnection();
+      alert(result ? '✅ Wallet connected!' : '❌ Wallet not connected');
+    } catch (error) {
+      alert(`❌ Connection test failed: ${error.message}`);
+    }
+  };
+
+  const testNetwork = async () => {
+    try {
+      const { testNetworkConnection } = await import('../lib/contractUtils');
+      const result = await testNetworkConnection();
+      alert(`✅ Connected to: ${result.chainName} (${result.chainId})`);
+    } catch (error) {
+      alert(`❌ Network test failed: ${error.message}`);
+    }
+  };
+
+  const testTransaction = async () => {
+    try {
+      const { testVerySimpleTransaction } = await import('../lib/contractUtils');
+      const txHash = await testVerySimpleTransaction();
+      alert(`✅ Transaction sent: ${txHash}`);
+    } catch (error) {
+      alert(`❌ Transaction failed: ${error.message}`);
+    }
+  };
+
+  const runFullDiagnostics = async () => {
+    try {
+      console.log('🔧 Starting full diagnostics...');
+      await runDiagnostics();
+      alert('✅ Diagnostics completed! Check console for details.');
+    } catch (error) {
+      console.error('❌ Diagnostics failed:', error);
+      alert(`❌ Diagnostics failed: ${error.message}`);
     }
   };
 
@@ -218,17 +284,48 @@ export default function SwapInterface() {
         </div>
 
         {/* Swap Button */}
-        <button
-          onClick={handleSwap}
-          disabled={isSwapDisabled}
-          className={`w-full font-bold py-4 px-4 rounded-xl transition-all duration-200 shadow-lg transform hover:scale-[1.02] backdrop-blur-sm ${
-            isSwapDisabled
-              ? 'bg-gray-500/20 text-gray-400 cursor-not-allowed'
-              : 'bg-gradient-to-r from-blue-500/80 to-cyan-500/80 hover:from-blue-600/80 hover:to-cyan-600/80 text-white hover:shadow-blue-500/25'
-          }`}
-        >
-          {getSwapButtonText()}
-        </button>
+                  <button
+            onClick={handleSwap}
+            disabled={isSwapDisabled}
+            className={`w-full font-bold py-4 px-4 rounded-xl transition-all duration-200 shadow-lg transform hover:scale-[1.02] backdrop-blur-sm ${
+              isSwapDisabled
+                ? 'bg-gray-500/20 text-gray-400 cursor-not-allowed'
+                : 'bg-gradient-to-r from-blue-500/80 to-cyan-500/80 hover:from-blue-600/80 hover:to-cyan-600/80 text-white hover:shadow-blue-500/25'
+            }`}
+          >
+            {getSwapButtonText()}
+          </button>
+
+          {/* Debug Test Buttons */}
+          <div className="mt-4 space-y-2">
+            <div className="text-sm text-gray-300 text-center">Debug Tests:</div>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={testWalletExists}
+                className="bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-300 text-xs px-2 py-2 rounded-lg backdrop-blur-lg border border-yellow-500/20 hover:border-yellow-500/40 transition-all duration-200"
+              >
+                Wallet Exists?
+              </button>
+              <button
+                onClick={testConnection}
+                className="bg-green-500/20 hover:bg-green-500/30 text-green-300 text-xs px-2 py-2 rounded-lg backdrop-blur-lg border border-green-500/20 hover:border-green-500/40 transition-all duration-200"
+              >
+                Test Connection
+              </button>
+              <button
+                onClick={testNetwork}
+                className="bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 text-xs px-2 py-2 rounded-lg backdrop-blur-lg border border-blue-500/20 hover:border-blue-500/40 transition-all duration-200"
+              >
+                Test Network
+              </button>
+              <button
+                onClick={runFullDiagnostics}
+                className="bg-red-500/20 hover:bg-red-500/30 text-red-300 text-xs px-2 py-2 rounded-lg backdrop-blur-lg border border-red-500/20 hover:border-red-500/40 transition-all duration-200"
+              >
+                🔧 Full Diagnostics
+              </button>
+            </div>
+          </div>
 
         {/* Exchange Rate */}
         <div className="mt-4 text-center text-sm text-blue-300/70">
