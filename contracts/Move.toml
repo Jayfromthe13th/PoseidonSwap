@@ -6,7 +6,7 @@ authors = []
 [addresses]
 poseidon_swap = "0xca5ae6a7ac18c3db437de6b3dff8fcf3da06b8fc"
 shell_token = "0xca5ae6a7ac18c3db437de6b3dff8fcf3da06b8fc"
-umi_token = "0xca5ae6a7ac18c3db437de6b3dff8fcf3da06b8fc"
+pearl_token = "0xca5ae6a7ac18c3db437de6b3dff8fcf3da06b8fc"
 apt_token = "0xca5ae6a7ac18c3db437de6b3dff8fcf3da06b8fc"
 
 [dev-addresses]

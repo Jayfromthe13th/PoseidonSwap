@@ -66,8 +66,8 @@ export const getSigner = (address: string): FixedBytes => {
   return new FixedBytes(new Uint8Array(addressBytes));
 };
 
-// Create Move transaction payload for UMI token operations
-export const createUMITokenPayload = async (method: string, amount?: string): Promise<`0x${string}`> => {
+// Create Move transaction payload for Shell token operations
+export const createShellTokenPayload = async (method: string, amount?: string): Promise<`0x${string}`> => {
   const moveAccount = await getMoveAccount();
   const signer = getSigner(moveAccount);
   
@@ -87,7 +87,7 @@ export const createUMITokenPayload = async (method: string, amount?: string): Pr
   }
   
   const entryFunction = EntryFunction.build(
-    `${paddedAddress}::umi_token`,
+    `${paddedAddress}::shell_token`,
     method,
     [], // No type arguments
     args
@@ -105,7 +105,7 @@ export const createPoolPayload = async (method: string, amount?: string): Promis
   // Build arguments based on the method
   let args: any[] = [signer];
   
-  if ((method === 'swap_umi_for_shell' || method === 'swap_shell_for_umi') && amount) {
+  if ((method === 'swap_shell_for_pearl' || method === 'swap_pearl_for_shell') && amount) {
     // Convert amount string to U256 for Move
     const u256Amount = new U256(BigInt(amount));
     args.push(u256Amount);

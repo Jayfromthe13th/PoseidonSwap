@@ -124,27 +124,27 @@ export async function testSimpleTransaction(): Promise<string> {
 // Development flag - set to true to use mock mode instead of real transactions
 const USE_MOCK_MODE = false; // Change to true for development
 
-// Mint UMI tokens using proper Move transactions
-export async function mintUMITokens(amount: string, address: `0x${string}`): Promise<string> {
+// Mint Shell tokens using proper Move transactions
+export async function mintShellTokens(amount: string, address: `0x${string}`): Promise<string> {
   // Mock mode for development
   if (USE_MOCK_MODE) {
-    console.log(`🔄 [MOCK MODE] Minting ${amount} UMI tokens...`);
+    console.log(`🔄 [MOCK MODE] Minting ${amount} Shell tokens...`);
     await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate delay
     
-    const currentBalance = localStorage.getItem(`umi_balance_${address}`) || '5120';
+    const currentBalance = localStorage.getItem(`shell_balance_${address}`) || '5120';
     const newBalance = (parseFloat(currentBalance) + parseFloat(amount)).toString();
-    localStorage.setItem(`umi_balance_${address}`, newBalance);
+    localStorage.setItem(`shell_balance_${address}`, newBalance);
     
     const mockHash = `0x${Math.random().toString(16).substr(2, 64)}`;
-    console.log(`✅ [MOCK] Mint successful! New balance: ${newBalance} UMI`);
+    console.log(`✅ [MOCK] Mint successful! New balance: ${newBalance} Shell`);
     return mockHash;
   }
 
   try {
-    console.log(`🔄 Minting ${amount} UMI tokens using Move transaction...`);
+    console.log(`🔄 Minting ${amount} Shell tokens using Move transaction...`);
     
     // Import Move utilities dynamically to avoid SSR issues
-    const { walletClient, publicClient, createUMITokenPayload, getAccount } = await import('./moveConfig');
+    const { walletClient, publicClient, createShellTokenPayload, getAccount } = await import('./moveConfig');
     
     // Test wallet connection
     const isConnected = await testWalletConnection();
@@ -161,7 +161,7 @@ export async function mintUMITokens(amount: string, address: `0x${string}`): Pro
     console.log('Creating Move transaction payload for minting...');
     
     // Create Move transaction payload for minting (using entry function)
-    const payload = await createUMITokenPayload('mint', amount);
+    const payload = await createShellTokenPayload('mint', amount);
     
     console.log('Sending Move transaction...');
     
@@ -193,9 +193,9 @@ export async function mintUMITokens(amount: string, address: `0x${string}`): Pro
     }
     
     // Update localStorage for UI consistency (temporary)
-    const currentBalance = localStorage.getItem(`umi_balance_${address}`) || '5120';
+    const currentBalance = localStorage.getItem(`shell_balance_${address}`) || '5120';
     const newBalance = (parseFloat(currentBalance) + parseFloat(amount)).toString();
-    localStorage.setItem(`umi_balance_${address}`, newBalance);
+    localStorage.setItem(`shell_balance_${address}`, newBalance);
     
     return hash;
   } catch (error) {
@@ -203,10 +203,10 @@ export async function mintUMITokens(amount: string, address: `0x${string}`): Pro
     throw error;
   }
 }
-// Swap UMI for SHELL using proper Move transactions
-export async function swapUMIForShell(umiAmount: string, address: `0x${string}`): Promise<string> {
+// Swap Shell for Pearl using proper Move transactions
+export async function swapShellForPearl(shellAmount: string, address: `0x${string}`): Promise<string> {
   try {
-    console.log(`🔄 Swapping ${umiAmount} UMI for SHELL using Move transaction...`);
+    console.log(`🔄 Swapping ${shellAmount} Shell for Pearl using Move transaction...`);
     
     // Import Move utilities dynamically to avoid SSR issues
     const { walletClient, publicClient, createPoolPayload, getAccount } = await import('./moveConfig');
@@ -223,16 +223,16 @@ export async function swapUMIForShell(umiAmount: string, address: `0x${string}`)
       throw new Error(`Wrong network. Expected UMI Devnet (42069), got ${network.chainName}`);
     }
     
-    // Check if user has enough UMI (from localStorage for now)
-    const currentBalance = localStorage.getItem(`umi_balance_${address}`) || '5120';
-    if (parseFloat(currentBalance) < parseFloat(umiAmount)) {
-      throw new Error(`Insufficient UMI balance. Have: ${currentBalance}, need: ${umiAmount}`);
+    // Check if user has enough Shell (from localStorage for now)
+    const currentBalance = localStorage.getItem(`shell_balance_${address}`) || '5120';
+    if (parseFloat(currentBalance) < parseFloat(shellAmount)) {
+      throw new Error(`Insufficient Shell balance. Have: ${currentBalance}, need: ${shellAmount}`);
     }
     
     console.log('Creating Move transaction payload for swap...');
     
     // Create Move transaction payload for swapping
-    const payload = await createPoolPayload('swap_umi_for_shell', umiAmount);
+    const payload = await createPoolPayload('swap_shell_for_pearl', shellAmount);
     
     console.log('Sending Move swap transaction...');
     
@@ -263,8 +263,8 @@ export async function swapUMIForShell(umiAmount: string, address: `0x${string}`)
     }
     
     // Update localStorage for UI consistency (temporary)
-    const newUmiBalance = (parseFloat(currentBalance) - parseFloat(umiAmount)).toString();
-    localStorage.setItem(`umi_balance_${address}`, newUmiBalance);
+    const newShellBalance = (parseFloat(currentBalance) - parseFloat(shellAmount)).toString();
+    localStorage.setItem(`shell_balance_${address}`, newShellBalance);
     
     return hash;
   } catch (error) {
@@ -273,11 +273,11 @@ export async function swapUMIForShell(umiAmount: string, address: `0x${string}`)
   }
 }
 // Simple balance function (localStorage simulation)
-export async function getUMIBalance(address: `0x${string}`): Promise<string> {
+export async function getShellBalance(address: `0x${string}`): Promise<string> {
   try {
     // For testing, just return localStorage balance
-    const balance = localStorage.getItem(`umi_balance_${address}`) || '5120';
-    console.log(`📊 UMI Balance for ${address}: ${balance}`);
+    const balance = localStorage.getItem(`shell_balance_${address}`) || '5120';
+    console.log(`📊 Shell Balance for ${address}: ${balance}`);
     return balance;
   } catch (error) {
     console.error('❌ Balance fetch failed:', error);

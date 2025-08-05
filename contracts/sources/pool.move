@@ -8,8 +8,8 @@ module poseidon_swap::pool {
     use poseidon_swap::lp_token;
     use poseidon_swap::events;
     use poseidon_swap::errors;
-    use poseidon_swap::umi_token;
     use poseidon_swap::shell_token;
+    use poseidon_swap::pearl_token;
 
     /// Pool resource holding AMM state for UMI/Shell pair
     struct Pool has key {
@@ -66,12 +66,12 @@ module poseidon_swap::pool {
         assert!(initial_shell_amount >= MIN_LIQUIDITY, errors::insufficient_input_amount());
         
         // Ensure user has token stores
-        umi_token::ensure_token_store(creator);
         shell_token::ensure_token_store(creator);
+        pearl_token::ensure_token_store(creator);
         
         // Verify user has sufficient balance
-        let umi_balance = umi_token::balance_of(creator_addr);
-        let shell_balance = shell_token::balance_of(creator_addr);
+        let umi_balance = shell_token::balance_of(creator_addr);
+        let shell_balance = pearl_token::balance_of(creator_addr);
         assert!(umi_balance >= (initial_umi_amount as u256), errors::insufficient_input_amount());
         assert!(shell_balance >= initial_shell_amount, errors::insufficient_input_amount());
         
@@ -89,8 +89,8 @@ module poseidon_swap::pool {
         let initial_lp_supply = math::sqrt_u64(initial_umi_amount * initial_shell_amount);
         
         // Transfer tokens to pool (simulated - in real implementation would transfer to pool address)
-        umi_token::withdraw(creator, (initial_umi_amount as u256));
-        shell_token::withdraw(creator, initial_shell_amount);
+        shell_token::withdraw(creator, (initial_umi_amount as u256));
+        pearl_token::withdraw(creator, initial_shell_amount);
         
         // Create pool resource
         move_to(creator, Pool {
@@ -147,12 +147,12 @@ module poseidon_swap::pool {
         assert!(!is_paused(pool_addr), errors::pool_paused());
         
         // Ensure user has token stores
-        umi_token::ensure_token_store(user);
         shell_token::ensure_token_store(user);
+        pearl_token::ensure_token_store(user);
         
         // Verify user has sufficient balance
-        let umi_balance = umi_token::balance_of(user_addr);
-        let shell_balance = shell_token::balance_of(user_addr);
+        let umi_balance = shell_token::balance_of(user_addr);
+        let shell_balance = pearl_token::balance_of(user_addr);
         assert!(umi_balance >= (umi_amount as u256), errors::insufficient_input_amount());
         assert!(shell_balance >= shell_amount, errors::insufficient_input_amount());
         
@@ -178,8 +178,8 @@ module poseidon_swap::pool {
         assert!(lp_tokens >= min_lp_tokens, errors::slippage_exceeded());
         
         // Transfer tokens from user
-        umi_token::withdraw(user, (umi_amount as u256));
-        shell_token::withdraw(user, shell_amount);
+        shell_token::withdraw(user, (umi_amount as u256));
+        pearl_token::withdraw(user, shell_amount);
         
         // Update pool reserves
         pool.umi_reserve = pool.umi_reserve + umi_amount;
@@ -218,8 +218,8 @@ module poseidon_swap::pool {
         assert!(!is_paused(pool_addr), errors::pool_paused());
         
         // Ensure user has token stores
-        umi_token::ensure_token_store(user);
         shell_token::ensure_token_store(user);
+        pearl_token::ensure_token_store(user);
         
         // Get current pool state
         let pool = borrow_global_mut<Pool>(pool_addr);
@@ -249,8 +249,8 @@ module poseidon_swap::pool {
         pool.total_lp_supply = pool.total_lp_supply - lp_tokens;
         
         // Transfer tokens to user
-        umi_token::deposit(user, (umi_amount as u256));
-        shell_token::deposit(user, shell_amount);
+        shell_token::deposit(user, (umi_amount as u256));
+        pearl_token::deposit(user, shell_amount);
         
         // Emit liquidity removed event
         events::emit_liquidity_removed(
@@ -315,68 +315,11 @@ module poseidon_swap::pool {
         events::emit_ownership_transferred(pool_addr, owner_addr, new_owner);
     }
 
-    /// Swap UMI for Shell
-    public fun swap_umi_for_shell(
-        user: &signer,
-        umi_in: u64,
-        min_shell_out: u64
-    ): u64 acquires Pool, PoolRegistry, PoolInfo {
-        let user_addr = signer::address_of(user);
-        let pool_addr = get_pool_address();
-        
-        // Validate inputs
-        assert!(umi_in > 0, errors::insufficient_input_amount());
-        assert!(!is_paused(pool_addr), errors::pool_paused());
-        
-        // Get current pool state
-        let pool = borrow_global_mut<Pool>(pool_addr);
-        
-        // Calculate output amount with fee
-        let shell_out = math::calculate_swap_output_with_fee(
-            pool.umi_reserve,
-            pool.shell_reserve,
-            umi_in,
-            pool.fee_bps
-        );
-        
-        // Validate slippage and output
-        assert!(shell_out >= min_shell_out, errors::slippage_exceeded());
-        assert!(shell_out < pool.shell_reserve, errors::insufficient_liquidity());
-        
-        // Transfer tokens
-        umi_token::withdraw(user, (umi_in as u256));
-        shell_token::deposit(user, shell_out);
-        
-        // Update reserves
-        pool.umi_reserve = pool.umi_reserve + umi_in;
-        pool.shell_reserve = pool.shell_reserve - shell_out;
-        
-        // Update volume and fees
-        let pool_info = borrow_global_mut<PoolInfo>(pool_addr);
-        pool_info.total_volume = pool_info.total_volume + (umi_in as u128);
-        let fee_amount = (umi_in as u128) * (pool.fee_bps as u128) / 10000;
-        pool_info.total_fees = pool_info.total_fees + fee_amount;
-        
-        // Emit swap event
-        events::emit_swap_executed(
-            user_addr,
-            @umi_token,  // token_in address
-            umi_in,
-            shell_out,
-            pool.umi_reserve,
-            pool.shell_reserve,
-            pool.umi_reserve + umi_in,
-            pool.shell_reserve - shell_out
-        );
-        
-        shell_out
-    }
-
-    /// Swap Shell for UMI
-    public fun swap_shell_for_umi(
+    /// Swap Shell for Pearl
+    public fun swap_shell_for_pearl(
         user: &signer,
         shell_in: u64,
-        min_umi_out: u64
+        min_pearl_out: u64
     ): u64 acquires Pool, PoolRegistry, PoolInfo {
         let user_addr = signer::address_of(user);
         let pool_addr = get_pool_address();
@@ -389,24 +332,24 @@ module poseidon_swap::pool {
         let pool = borrow_global_mut<Pool>(pool_addr);
         
         // Calculate output amount with fee
-        let umi_out = math::calculate_swap_output_with_fee(
-            pool.shell_reserve,
+        let pearl_out = math::calculate_swap_output_with_fee(
             pool.umi_reserve,
+            pool.shell_reserve,
             shell_in,
             pool.fee_bps
         );
         
         // Validate slippage and output
-        assert!(umi_out >= min_umi_out, errors::slippage_exceeded());
-        assert!(umi_out < pool.umi_reserve, errors::insufficient_liquidity());
+        assert!(pearl_out >= min_pearl_out, errors::slippage_exceeded());
+        assert!(pearl_out < pool.shell_reserve, errors::insufficient_liquidity());
         
         // Transfer tokens
-        shell_token::withdraw(user, shell_in);
-        umi_token::deposit(user, (umi_out as u256));
+        shell_token::withdraw(user, (shell_in as u256));
+        pearl_token::deposit(user, pearl_out);
         
         // Update reserves
-        pool.shell_reserve = pool.shell_reserve + shell_in;
-        pool.umi_reserve = pool.umi_reserve - umi_out;
+        pool.umi_reserve = pool.umi_reserve + shell_in;
+        pool.shell_reserve = pool.shell_reserve - pearl_out;
         
         // Update volume and fees
         let pool_info = borrow_global_mut<PoolInfo>(pool_addr);
@@ -419,14 +362,71 @@ module poseidon_swap::pool {
             user_addr,
             @shell_token,  // token_in address
             shell_in,
-            umi_out,
-            pool.shell_reserve,
+            pearl_out,
             pool.umi_reserve,
-            pool.shell_reserve + shell_in,
-            pool.umi_reserve - umi_out
+            pool.shell_reserve,
+            pool.umi_reserve + shell_in,
+            pool.shell_reserve - pearl_out
         );
         
-        umi_out
+        pearl_out
+    }
+
+    /// Swap Pearl for Shell
+    public fun swap_pearl_for_shell(
+        user: &signer,
+        pearl_in: u64,
+        min_shell_out: u64
+    ): u64 acquires Pool, PoolRegistry, PoolInfo {
+        let user_addr = signer::address_of(user);
+        let pool_addr = get_pool_address();
+        
+        // Validate inputs
+        assert!(pearl_in > 0, errors::insufficient_input_amount());
+        assert!(!is_paused(pool_addr), errors::pool_paused());
+        
+        // Get current pool state
+        let pool = borrow_global_mut<Pool>(pool_addr);
+        
+        // Calculate output amount with fee
+        let shell_out = math::calculate_swap_output_with_fee(
+            pool.shell_reserve,
+            pool.umi_reserve,
+            pearl_in,
+            pool.fee_bps
+        );
+        
+        // Validate slippage and output
+        assert!(shell_out >= min_shell_out, errors::slippage_exceeded());
+        assert!(shell_out < pool.umi_reserve, errors::insufficient_liquidity());
+        
+        // Transfer tokens
+        pearl_token::withdraw(user, pearl_in);
+        shell_token::deposit(user, (shell_out as u256));
+        
+        // Update reserves
+        pool.shell_reserve = pool.shell_reserve + pearl_in;
+        pool.umi_reserve = pool.umi_reserve - shell_out;
+        
+        // Update volume and fees
+        let pool_info = borrow_global_mut<PoolInfo>(pool_addr);
+        pool_info.total_volume = pool_info.total_volume + (pearl_in as u128);
+        let fee_amount = (pearl_in as u128) * (pool.fee_bps as u128) / 10000;
+        pool_info.total_fees = pool_info.total_fees + fee_amount;
+        
+        // Emit swap event
+        events::emit_swap_executed(
+            user_addr,
+            @pearl_token,  // token_in address
+            pearl_in,
+            shell_out,
+            pool.shell_reserve,
+            pool.umi_reserve,
+            pool.shell_reserve + pearl_in,
+            pool.umi_reserve - shell_out
+        );
+        
+        shell_out
     }
 
     // Helper functions

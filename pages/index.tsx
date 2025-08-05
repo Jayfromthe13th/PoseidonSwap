@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ArrowDownIcon } from '@heroicons/react/20/solid';
 import WalletButton from '../components/WalletButton';
-import { swapUMIForShell, getUMIBalance, runDiagnostics } from '../lib/contractUtils';
+import { swapShellForPearl, getShellBalance, runDiagnostics } from '../lib/contractUtils';
 
 // Global type extension for wallet
 declare global {
@@ -28,12 +28,15 @@ const SeashellIcon = () => (
 
 export default function SwapInterface() {
   const [fromAmount, setFromAmount] = useState('');
+  const [ethBalance, setEthBalance] = useState('0');
+  const [pearlBalance, setPearlBalance] = useState('0');
+  const [lastRefresh, setLastRefresh] = useState(new Date());
   const [toAmount, setToAmount] = useState('');
-  const [fromToken, setFromToken] = useState('UMI');
-  const [toToken, setToToken] = useState('SHELL');
+  const [fromToken, setFromToken] = useState('SHELL');
+  const [toToken, setToToken] = useState('PEARL');
   const [mounted, setMounted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [umiBalance, setUmiBalance] = useState('0');
+  const [shellBalance, setShellBalance] = useState('0');
   
   // Direct wallet state management
   const [directAddress, setDirectAddress] = useState<string>('');
@@ -74,23 +77,66 @@ export default function SwapInterface() {
 
   useEffect(() => {
     // Calculate estimated output when fromAmount changes
-    if (fromAmount && fromToken === 'UMI') {
-      const estimatedShell = (parseFloat(fromAmount) * 0.00234).toFixed(6);
-      setToAmount(estimatedShell);
+            if (fromAmount && fromToken === 'SHELL') {
+          const estimatedPearl = (parseFloat(fromAmount) * 0.00234).toFixed(6);
+          setToAmount(estimatedPearl);
     } else {
       setToAmount('');
     }
   }, [fromAmount, fromToken]);
 
   const fetchBalance = async () => {
-    if (isConnected && address && mounted) {
-      try {
-        const balance = await getUMIBalance(address);
-        setUmiBalance(balance);
-      } catch (error) {
-        console.error('Error fetching balance:', error);
-        setUmiBalance('0');
+    if (!isConnected || !address || !mounted) {
+      console.log('❌ Cannot fetch balance - not connected/mounted');
+      setShellBalance('0');
+      setEthBalance('0');
+      setPearlBalance('0');
+      return;
+    }
+
+    console.log('🔍 Fetching balances for:', address);
+    console.log('🌐 Current chain ID:', currentChainId);
+    console.log('🌐 Is on Umi Network:', isOnUmiNetwork);
+    setLastRefresh(new Date());
+
+    try {
+      // Fetch ETH balance
+      if (window.ethereum) {
+        console.log('📊 Requesting ETH balance...');
+        try {
+          const ethBalanceHex = await window.ethereum.request({
+            method: 'eth_getBalance',
+            params: [address, 'latest']
+          });
+          const ethBalanceWei = BigInt(ethBalanceHex);
+          const ethBalanceEth = (Number(ethBalanceWei) / 1e18).toFixed(6);
+          setEthBalance(ethBalanceEth);
+          console.log('💰 ETH Balance:', ethBalanceEth, 'ETH');
+          console.log('💰 ETH Balance (Wei):', ethBalanceWei.toString());
+          console.log('💰 ETH Balance (Hex):', ethBalanceHex);
+        } catch (ethError) {
+          console.error('❌ Error fetching ETH balance:', ethError);
+          setEthBalance('Error');
+        }
       }
+
+      // Fetch Shell balance (formerly UMI)
+      try {
+        console.log('🐚 Requesting Shell balance...');
+        const balance = await getShellBalance(address);
+        setShellBalance(balance);
+        console.log('🐚 Shell Balance:', balance);
+      } catch (error) {
+        console.error('❌ Error fetching Shell balance:', error);
+        setShellBalance('Error');
+      }
+
+      // Pearl balance - placeholder for now
+      setPearlBalance('0.000000');
+      console.log('🔮 Pearl balance: 0.000000 (contract not deployed yet)');
+
+    } catch (error) {
+      console.error('❌ Error in fetchBalance:', error);
     }
   };
 
@@ -103,13 +149,13 @@ export default function SwapInterface() {
     setIsLoading(true);
     
     try {
-      const txHash = await swapUMIForShell(fromAmount, directAddress as `0x${string}`);
+      const txHash = await swapShellForPearl(fromAmount, directAddress as `0x${string}`);
       
       // Update balance after successful swap
       await fetchBalance();
       
       // Show success message
-      alert(`✅ Successfully swapped ${fromAmount} UMI for SHELL!\nTransaction: ${txHash}`);
+              alert(`✅ Successfully swapped ${fromAmount} SHELL for PEARL!\nTransaction: ${txHash}`);
       
       // Clear the inputs
       setFromAmount('');
@@ -224,16 +270,16 @@ export default function SwapInterface() {
           <div className="flex justify-between mb-2">
             <label className="text-blue-200">From</label>
             <div className="flex items-center gap-2">
-              {mounted && isConnected && fromToken === 'UMI' && (
-                <span className="text-xs text-blue-300/70">Balance: {umiBalance}</span>
+                          {mounted && isConnected && fromToken === 'SHELL' && (
+              <span className="text-xs text-blue-300/70">Balance: {shellBalance}</span>
               )}
               <select 
                 className="bg-transparent text-right outline-none text-blue-200 hover:text-blue-100 transition-colors cursor-pointer"
                 value={fromToken}
                 onChange={(e) => setFromToken(e.target.value)}
               >
-                <option value="UMI" className="bg-blue-900">UMI</option>
                 <option value="SHELL" className="bg-blue-900">SHELL</option>
+                <option value="PEARL" className="bg-blue-900">PEARL</option>
               </select>
             </div>
           </div>
@@ -270,8 +316,8 @@ export default function SwapInterface() {
               value={toToken}
               onChange={(e) => setToToken(e.target.value)}
             >
-              <option value="SHELL" className="bg-blue-900">SHELL</option>
-              <option value="UMI" className="bg-blue-900">UMI</option>
+                              <option value="PEARL" className="bg-blue-900">PEARL</option>
+                <option value="SHELL" className="bg-blue-900">SHELL</option>
             </select>
           </div>
           <input
@@ -327,9 +373,53 @@ export default function SwapInterface() {
             </div>
           </div>
 
+        {/* Debug Section */}
+        {mounted && isConnected && (
+          <div className="mt-4 bg-gray-900/30 rounded-2xl p-4 border border-gray-500/20">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-bold text-gray-300">🔧 Debug Info</h3>
+              <button
+                onClick={fetchBalance}
+                className="bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 text-xs px-3 py-1 rounded-lg backdrop-blur-lg border border-blue-500/20 hover:border-blue-500/40 transition-all duration-200"
+              >
+                🔄 Refresh
+              </button>
+            </div>
+            
+            <div className="space-y-2 text-xs">
+              <div className="flex justify-between">
+                <span className="text-gray-400">Address:</span>
+                <span className="text-blue-300 font-mono">{address?.slice(0, 8)}...{address?.slice(-6)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">Chain ID:</span>
+                <span className={`${isOnUmiNetwork ? 'text-green-300' : 'text-orange-300'}`}>
+                  {currentChainId} {isOnUmiNetwork ? '✓' : '⚠️'}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">ETH Balance:</span>
+                <span className="text-green-300 font-mono">{ethBalance} ETH</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">SHELL Balance:</span>
+                <span className="text-blue-300 font-mono">{shellBalance}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">PEARL Balance:</span>
+                <span className="text-purple-300 font-mono">{pearlBalance}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">Last Refresh:</span>
+                <span className="text-gray-300">{lastRefresh.toLocaleTimeString()}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Exchange Rate */}
         <div className="mt-4 text-center text-sm text-blue-300/70">
-          1 UMI = 0.00234 SHELL
+                      1 SHELL = 0.00234 PEARL
         </div>
 
         {/* Need Tokens Link */}
@@ -338,7 +428,7 @@ export default function SwapInterface() {
             href="/mint"
             className="text-sm text-blue-400 hover:text-blue-300 underline transition-colors"
           >
-            Need UMI tokens? Mint here →
+            Need SHELL tokens? Mint here →
           </a>
         </div>
         

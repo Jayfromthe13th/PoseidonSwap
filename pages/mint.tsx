@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { ArrowLeftIcon } from '@heroicons/react/20/solid';
 import { useRouter } from 'next/router';
 import WalletButton from '../components/WalletButton';
-import { mintUMITokens, getUMIBalance } from '../lib/contractUtils';
+import { mintShellTokens, getShellBalance } from '../lib/contractUtils';
 
 // Global type extension for wallet
 declare global {
@@ -67,7 +67,7 @@ export default function MintPage() {
   const fetchBalance = async () => {
     if (isConnected && directAddress && mounted) {
       try {
-        const balance = await getUMIBalance(directAddress as `0x${string}`);
+        const balance = await getShellBalance(directAddress as `0x${string}`);
         setCurrentBalance(balance);
       } catch (error) {
         console.error('Error fetching balance:', error);
@@ -89,13 +89,13 @@ export default function MintPage() {
     setIsLoading(true);
     
     try {
-      const txHash = await mintUMITokens(mintAmount, directAddress as `0x${string}`);
+      const txHash = await mintShellTokens(mintAmount, directAddress as `0x${string}`);
       
       // Update balance after successful mint
       await fetchBalance();
       
       // Show success message
-      alert(`✅ Successfully minted ${mintAmount} UMI tokens!\nTransaction: ${txHash}`);
+              alert(`✅ Successfully minted ${mintAmount} SHELL tokens!\nTransaction: ${txHash}`);
       
       // Clear the input
       setMintAmount('');
@@ -161,7 +161,7 @@ export default function MintPage() {
         <div className="flex items-center justify-center gap-3 mb-8">
           <CoinsIcon />
           <h1 className="text-3xl font-bold text-center bg-gradient-to-r from-blue-400 to-cyan-400 text-transparent bg-clip-text">
-            Mint UMI Tokens
+            Mint SHELL Tokens
           </h1>
           <TridentIcon />
         </div>
@@ -169,8 +169,8 @@ export default function MintPage() {
         {/* Current Balance */}
         <div className="bg-blue-900/20 rounded-2xl p-4 mb-6 backdrop-blur-lg border border-blue-500/20">
           <div className="text-center">
-            <label className="text-blue-200 text-sm">Current UMI Balance</label>
-            <div className="text-2xl font-bold text-white mt-1">{currentBalance} UMI</div>
+                      <label className="text-blue-200 text-sm">Current SHELL Balance</label>
+          <div className="text-2xl font-bold text-white mt-1">{currentBalance} SHELL</div>
           </div>
         </div>
         
@@ -178,7 +178,7 @@ export default function MintPage() {
         <div className="bg-blue-900/20 rounded-2xl p-4 mb-4 backdrop-blur-lg border border-blue-500/20 hover:border-blue-500/40 transition-all duration-200">
           <div className="flex justify-between mb-2">
             <label className="text-blue-200">Amount to Mint</label>
-            <span className="text-blue-200 text-sm">UMI</span>
+            <span className="text-blue-200 text-sm">SHELL</span>
           </div>
           <input
             type="number"
@@ -197,7 +197,7 @@ export default function MintPage() {
               onClick={() => handlePresetAmount(amount)}
               className="bg-blue-700/30 hover:bg-blue-600/40 text-blue-200 hover:text-white py-3 px-4 rounded-xl transition-all duration-200 border border-blue-500/30 hover:border-blue-500/50 text-sm font-medium"
             >
-              {amount} UMI
+              {amount} SHELL
             </button>
           ))}
         </div>
@@ -212,12 +212,12 @@ export default function MintPage() {
               : 'bg-gradient-to-r from-green-500/80 to-emerald-500/80 hover:from-green-600/80 hover:to-emerald-600/80 text-white hover:shadow-green-500/25'
           }`}
         >
-          {isLoading ? 'Minting...' : 'Mint UMI Tokens'}
+          {isLoading ? 'Minting...' : 'Mint SHELL Tokens'}
         </button>
 
         {/* Info Text */}
         <div className="mt-4 text-center text-sm text-blue-300/70">
-          Mint UMI tokens for testing on devnet
+          Mint SHELL tokens for testing on devnet
         </div>
         
         {/* Connection Status */}
