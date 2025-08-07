@@ -11,8 +11,8 @@ export const CONTRACTS = {
 
 // Move function selectors for Shell token operations
 export const SHELL_TOKEN_FUNCTIONS = {
-  MINT_FOR_TESTING: 'poseidon_swap::shell_token::mint_for_testing',
-  GET_BALANCE: 'poseidon_swap::shell_token::get_balance',
+  MINT: 'poseidon_swap::shell_token::mint',
+  VIEW_BALANCE: 'poseidon_swap::shell_token::view_balance',
   BALANCE_OF: 'poseidon_swap::shell_token::balance_of',
 } as const;
 

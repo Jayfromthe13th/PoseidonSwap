@@ -80,27 +80,17 @@ module poseidon_swap::shell_token {
         get_balance(user_addr)
     }
 
-    /// Mint Shell tokens (matches op-move mint function signature)
-    public entry fun mint(admin: &signer, to: address, amount: u256) acquires ShellTokenStore, ShellMetadata {
-        // Verify admin permissions (in real implementation)
-        let _admin_addr = signer::address_of(admin);
-        
-        // Ensure store exists
-        if (!exists<ShellTokenStore>(to)) {
-            move_to(admin, ShellTokenStore {
-                balance: 0,
-                frozen: false,
-            });
-        };
+    /// Mint Shell tokens for testing (entry function version)
+    public entry fun mint(user: &signer, amount: u256) acquires ShellTokenStore, ShellMetadata {
+        let user_addr = signer::address_of(user);
+        ensure_token_store(user);
         
         // Update total supply
         let metadata = borrow_global_mut<ShellMetadata>(@poseidon_swap);
         metadata.total_supply = metadata.total_supply + amount;
         
         // Mint to user
-        let store = borrow_global_mut<ShellTokenStore>(to);
-        assert!(!store.frozen, errors::account_frozen());
-        store.balance = store.balance + amount;
+        deposit(user, amount);
     }
 
     /// Transfer Shell tokens (matches op-move transfer function signature)
@@ -146,8 +136,8 @@ module poseidon_swap::shell_token {
         metadata.total_supply = metadata.total_supply - amount;
     }
 
-    /// Deposit Shell to user's store (for pool operations)
-    public(friend) fun deposit(user: &signer, amount: u256) acquires ShellTokenStore {
+    /// Deposit Shell to user's store (for pool operations and minting)
+    public fun deposit(user: &signer, amount: u256) acquires ShellTokenStore {
         let user_addr = signer::address_of(user);
         ensure_token_store(user);
         

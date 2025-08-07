@@ -3,24 +3,22 @@ const { AccountAddress, EntryFunction, FixedBytes, parseTypeTag } = require('@ap
 const { TransactionPayloadEntryFunction, TypeTagSigner } = require('@aptos-labs/ts-sdk');
 
 async function main() {
-  const moduleNames = ['errors', 'events', 'math', 'lp_token', 'pool', 'umi_token', 'shell_token', 'apt_token'];
+  const packageName = 'poseidon_swap';
   const [deployer] = await ethers.getSigners();
   const moduleAddress = deployer.address.replace('0x', '0x000000000000000000000000');
 
-  console.log(`Deploying PoseidonSwap AMM with account: ${deployer.address}`);
+  console.log(`Deploying PoseidonSwap AMM package with account: ${deployer.address}`);
   console.log(`Module address: ${moduleAddress}`);
 
-  // Deploy each module
-  for (const contractName of moduleNames) {
-    console.log(`Deploying ${contractName}...`);
-    try {
-      const Contract = await ethers.getContractFactory(contractName);
-      const contract = await Contract.deploy();
-      await contract.waitForDeployment();
-      console.log(`${contractName} deployed to: ${deployer.address}::${contractName}`);
-    } catch (error) {
-      console.log(`Note: ${contractName} deployment handled by Hardhat Move plugin`);
-    }
+  // Deploy the entire Move package 
+  console.log(`Deploying ${packageName} package...`);
+  try {
+    const PoseidonSwap = await ethers.getContractFactory(packageName);
+    const poseidonSwap = await PoseidonSwap.deploy();
+    await poseidonSwap.waitForDeployment();
+    console.log(`PoseidonSwap package deployed to: ${deployer.address}`);
+  } catch (error) {
+    console.log(`Package deployment handled by Hardhat Move plugin`);
   }
 
   const address = AccountAddress.fromString(moduleAddress);
@@ -52,15 +50,15 @@ async function main() {
 
   console.log('\nPoseidonSwap AMM Deployment Complete!');
   console.log('='.repeat(50));
-  console.log(`Contract Address: ${deployer.address}`);
-  console.log(`Modules Deployed:`);
+  console.log(`Package Address: ${deployer.address}`);
+  console.log(`Modules Available:`);
   console.log(`   - ${moduleAddress}::errors`);
   console.log(`   - ${moduleAddress}::events`);
   console.log(`   - ${moduleAddress}::math`);
   console.log(`   - ${moduleAddress}::lp_token`);
   console.log(`   - ${moduleAddress}::pool`);
-  console.log(`   - ${moduleAddress}::umi_token`);
   console.log(`   - ${moduleAddress}::shell_token`);
+  console.log(`   - ${moduleAddress}::pearl_token`);
   console.log(`   - ${moduleAddress}::apt_token`);
   console.log('='.repeat(50));
   console.log('Ready for AMM operations on UMI Network!');

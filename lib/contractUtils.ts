@@ -1,11 +1,7 @@
 // Simple wallet interaction utilities for testing
 // Start with basic functions and build up complexity
-// Global type extension for window.ethereum
-declare global {
-  interface Window {
-    ethereum?: any;
-  }
-}
+// Global type extension handled in WalletProvider component
+import { publicClient } from './moveConfig';
 // Ultra simple test function - just check if ethereum exists
 export async function testWalletExists(): Promise<boolean> {
   try {
@@ -131,12 +127,8 @@ export async function mintShellTokens(amount: string, address: `0x${string}`): P
     console.log(`🔄 [MOCK MODE] Minting ${amount} Shell tokens...`);
     await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate delay
     
-    const currentBalance = localStorage.getItem(`shell_balance_${address}`) || '5120';
-    const newBalance = (parseFloat(currentBalance) + parseFloat(amount)).toString();
-    localStorage.setItem(`shell_balance_${address}`, newBalance);
-    
     const mockHash = `0x${Math.random().toString(16).substr(2, 64)}`;
-    console.log(`✅ [MOCK] Mint successful! New balance: ${newBalance} Shell`);
+    console.log(`✅ [MOCK] Mint successful! (No balance tracking - mock only)`);
     return mockHash;
   }
 
@@ -167,13 +159,12 @@ export async function mintShellTokens(amount: string, address: `0x${string}`): P
     
     // Send Move transaction using Viem with explicit settings for Umi
     const hash = await walletClient().sendTransaction({
-      account: await getAccount(),
-      to: await getAccount(),
+      account: (await getAccount()) as `0x${string}`,
+      to: '0x27f09A766ADadB3D5b3642455C940CF24F7aBc3A', // Deployed contract address
       data: payload,
       gas: BigInt(100000), // Higher gas limit
       gasPrice: BigInt(2500000000), // Higher gas price (2.5 Gwei)
-      type: 'legacy', // Use legacy transaction type for Umi compatibility
-    });
+    } as any);
     
     console.log('Move transaction submitted! Hash:', hash);
     
@@ -186,16 +177,15 @@ export async function mintShellTokens(amount: string, address: `0x${string}`): P
         timeout: 30000 // 30 second timeout
       });
       console.log(`✅ Move mint transaction confirmed! Hash: ${hash}`);
+      
+      // Transaction confirmed - balance should be updated on-chain
+      console.log(`📊 Transaction confirmed - balance updated on blockchain`);
+      
     } catch (receiptError) {
       console.log(`⚠️ Transaction submitted but receipt not found yet. Hash: ${hash}`);
       console.log('This is normal on Umi Devnet - transaction may still be processing');
-      // Don't throw error - transaction was submitted successfully
+      // DO NOT update any balance - wait for actual confirmation
     }
-    
-    // Update localStorage for UI consistency (temporary)
-    const currentBalance = localStorage.getItem(`shell_balance_${address}`) || '5120';
-    const newBalance = (parseFloat(currentBalance) + parseFloat(amount)).toString();
-    localStorage.setItem(`shell_balance_${address}`, newBalance);
     
     return hash;
   } catch (error) {
@@ -223,11 +213,9 @@ export async function swapShellForPearl(shellAmount: string, address: `0x${strin
       throw new Error(`Wrong network. Expected UMI Devnet (42069), got ${network.chainName}`);
     }
     
-    // Check if user has enough Shell (from localStorage for now)
-    const currentBalance = localStorage.getItem(`shell_balance_${address}`) || '5120';
-    if (parseFloat(currentBalance) < parseFloat(shellAmount)) {
-      throw new Error(`Insufficient Shell balance. Have: ${currentBalance}, need: ${shellAmount}`);
-    }
+    // TODO: Check if user has enough Shell from actual on-chain balance
+    // For now, skip balance check since we can't query real balances yet
+    console.log(`⚠️ Skipping balance check - need real on-chain balance query`);
     
     console.log('Creating Move transaction payload for swap...');
     
@@ -238,13 +226,12 @@ export async function swapShellForPearl(shellAmount: string, address: `0x${strin
     
     // Send Move transaction using Viem with explicit settings for Umi
     const hash = await walletClient().sendTransaction({
-      account: await getAccount(),
-      to: await getAccount(),
+      account: (await getAccount()) as `0x${string}`,
+      to: '0x27f09A766ADadB3D5b3642455C940CF24F7aBc3A', // Deployed contract address
       data: payload,
       gas: BigInt(100000), // Higher gas limit
       gasPrice: BigInt(2500000000), // Higher gas price (2.5 Gwei)
-      type: 'legacy', // Use legacy transaction type for Umi compatibility
-    });
+    } as any);
     
     console.log('Move swap transaction submitted! Hash:', hash);
     
@@ -262,9 +249,8 @@ export async function swapShellForPearl(shellAmount: string, address: `0x${strin
       // Don't throw error - transaction was submitted successfully
     }
     
-    // Update localStorage for UI consistency (temporary)
-    const newShellBalance = (parseFloat(currentBalance) - parseFloat(shellAmount)).toString();
-    localStorage.setItem(`shell_balance_${address}`, newShellBalance);
+    // Transaction submitted - balance should be updated on-chain
+    console.log(`📊 Swap transaction submitted - balances should update on blockchain`);
     
     return hash;
   } catch (error) {
@@ -272,15 +258,32 @@ export async function swapShellForPearl(shellAmount: string, address: `0x${strin
     throw error;
   }
 }
-// Simple balance function (localStorage simulation)
+// Query Shell balance from on-chain Move view function
 export async function getShellBalance(address: `0x${string}`): Promise<string> {
   try {
-    // For testing, just return localStorage balance
-    const balance = localStorage.getItem(`shell_balance_${address}`) || '5120';
+    console.log(`📊 Querying Shell balance for ${address}...`);
+    
+    const { createViewPayload, extractOutput } = await import('./moveConfig');
+    
+    // Create payload for view_balance function
+    const payload = await createViewPayload('view_balance', address);
+    
+    // Call the Move view function on-chain
+    const result = await publicClient().call({
+      to: '0x27f09A766ADadB3D5b3642455C940CF24F7aBc3A',
+      data: payload,
+    });
+    
+    // Extract the balance from the result
+    const balanceBytes = extractOutput(result.data);
+    
+    // Convert bytes to u256 balance (Move uses u256 for balances)
+    const balance = new DataView(balanceBytes.buffer).getBigUint64(0, false).toString();
     console.log(`📊 Shell Balance for ${address}: ${balance}`);
     return balance;
   } catch (error) {
     console.error('❌ Balance fetch failed:', error);
+    // Return 0 if view function fails
     return '0';
   }
 }
